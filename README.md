@@ -1,6 +1,12 @@
 # ImageMythos · AI 审美系统
 
 > 把一个人的「审美画像」变成**可生成的神性视觉**。
+
+**简介 / Description**
+
+- 中文：基于 8 维审美向量的引擎，把你的审美画像变成可生成的神性视觉——生成专属星云 / 流场 / 星系，并支持出图、视频、3D 与分享卡。
+- English: Turn your aesthetic profile into generative sacred art — an 8-dimension aesthetic-vector engine that renders personalized nebula, flow-field and galaxy visuals, with image/video/3D generation and shareable cards.
+
 > 先通过九型 / 荣格 / 占星 三套问卷测量 8 维审美向量，引擎据此生成**专属的星云、流场、星系**，并进一步出图、生成视频与 3D 雕塑，可一键生成分享卡扩散。
 >
 > 线上示例：<https://imagemythos.fun/ai-aesthetic-engine/>
