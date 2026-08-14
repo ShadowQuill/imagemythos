@@ -1,124 +1,136 @@
-# AI 审美系统 · 问卷筛选与访谈系统
+# ImageMythos · AI 审美系统
 
-> 一个纯前端 + 轻量 Node 后端的本地研究工具集，覆盖受访者筛选、盲审评分、审美题库管理等环节。
-> 数据通过 Node 内建的 `node:sqlite` 持久化到 SQLite 文件，**支持同局域网（Wi-Fi）内多设备、多浏览器共享**，无需云服务器。
+> 把一个人的「审美画像」变成**可生成的神性视觉**。
+> 先通过九型 / 荣格 / 占星 三套问卷测量 8 维审美向量，引擎据此生成**专属的星云、流场、星系**，并进一步出图、生成视频与 3D 雕塑，可一键生成分享卡扩散。
+>
+> 线上示例：<https://imagemythos.fun/ai-aesthetic-engine/>
 
 ---
 
-## 目录结构
+## ✨ 这是什么
+
+ImageMythos 是一套「审美向量 → 生成式视觉」的系统：
+
+1. **测量**：用户作答九型 / 荣格 / 占星 问卷，引擎融合出 8 维审美向量
+   `order / soft / warm / explicit / natural / traditional / light / sacred`（各 ∈ [-1, 1]）。
+2. **生成**：向量实时驱动三种 WebGL / Canvas 生成式画面——🌌 神性星云、🌊 神性流场、🌠 神性星系。
+3. **外延**：基于画面出图（混元 / 即梦）、生成视频、生成 3D 神性雕塑，并打包成可分享的卡片。
+
+不同性格、不同星座会生成不同**形态与配色**——同一套向量，既换色也换形。
+
+---
+
+## 🧩 核心特性
+
+- **8 维审美向量引擎**：确定性融合、占星三要素（日/月/上升）加权、可复现的平票裁决。
+- **三种生成式视觉**
+  - 🌌 神性星云（WebGL2 片元着色器）：弥漫 / 行星状 / 超新星 / 暗星云 / 发射星云
+  - 🌊 神性流场（Canvas2D Perlin）：湍流 / 均匀 / 弯曲 / 奇异线 / 奇异点
+  - 🌠 神性星系（WebGL2 粒子）：螺旋 / 椭圆 / 透镜状 / 不规则 / 环 / 棒旋 / 并合
+- **12 星座联动**：每个星座绑定一组配色 + 形态（火=螺旋/湍流、土=椭圆/均匀…），可选风格预设仅改色、星座仅改形，二者可叠加。
+- **出图 / 视频 / 3D**：内置「图片视频生成」「3D 模型与视频特效」技能（腾讯混元 / 火山即梦 / 伙伴云）。
+- **分享卡**：落页突出出图主视觉，视频 / 3D 以可折叠块展开。
+- **管理后台**：账号体系、邮箱 / 重置码找回密码；非管理员禁止进入（服务端鉴权）。
+- **零依赖后端**：Node.js 内置 `node:sqlite`，同局域网多设备共享同一份数据。
+
+---
+
+## 🛠 技术栈
+
+| 层 | 技术 |
+|---|---|
+| 前端 | 原生 HTML / CSS / JS，WebGL2 / WebGL / Canvas2D 着色器 |
+| 引擎 | `engine.js`（UMD，浏览器挂 `window.Engine`，Node 可 `require`） |
+| 后端 | Node.js ≥ 22.5，内置 `node:sqlite`，**零第三方依赖** |
+| 生成 | 内置多模态技能：混元生图 / 即梦 / 伙伴云 3D |
+
+---
+
+## 📁 目录结构
 
 ```
 .
-├── index.html                 # 研究控制台（首页 / 导航入口）
-├── 问卷系统/                  # 受访者库 + 后端服务
-│   ├── index.html             # 受访者库（带数据库）
-│   ├── 筛选问卷/              # 招募筛选问卷页
-│   ├── backend/
-│   │   ├── server.js          # 零依赖后端（托管前端 + SQLite 存储 + API）
-│   │   ├── package.json
-│   │   └── README.md
-│   ├── data.js / engine.js    # 前端共享脚本
-│   ├── 启动.command           # macOS 双击启动器
-│   ├── 启动.bat               # Windows 双击启动器
-│   └── start.sh               # Linux / macOS 终端启动器
-├── 盲审/                      # 盲审题集与评审
-│   ├── web/index.html         # 在线盲审页
-│   ├── 盲审录入.html          # 离线盲审录入
-│   └── web/blindset.json      # 盲集数据
-├── ai-aesthetic-engine/       # 审美题库与维度引擎
-│   ├── index.html             # 引擎主页
-│   ├── questionBank.json      # 题库
-│   └── dimensions.json        # 维度定义
-└── *.md                       # 调研 Brief、SOP、访谈提纲等文档
+├── index.html                 # 产品/研究控制台（首页导航）
+├── menu.md                    # 站点与本地入口导航
+├── ai-aesthetic-engine/       # 审美向量引擎 + 生成式视觉前端
+│   ├── index.html             # 测评 + 生成入口
+│   ├── nebula.html / flowfield.html / galaxy.html
+│   ├── share.html             # 分享卡落地页
+│   ├── admin.html             # 管理后台（需管理员）
+│   ├── engine.js / data.js    # 8 维融合引擎（UMD）
+│   ├── questionBank.json / dimensions.json
+│   └── providers/             # 出图/视频/3D 供应商适配
+└── 问卷系统/backend/           # 零依赖 Node 服务
+    ├── server.js              # 托管前端 + SQLite + REST API + 分享/管理
+    ├── email.js / backup.js / watchdog.js
+    └── .env.example
 ```
+
+> 研究文档（调研 Brief、盲审、访谈、信效度等）**不在本仓库**，仅本地留存（见 `.gitignore`）。
 
 ---
 
-## 快速开始：启动系统
+## 🚀 快速开始
 
-### 前置要求
-- **Node.js ≥ 22.5**（使用了内建实验性 `node:sqlite` 模块）。
-  下载：<https://nodejs.org>（选 LTS 22 即可）。
-  安装后在终端执行 `node -v` 确认版本。
+**前置**：Node.js ≥ 22.5（需内置实验性 `node:sqlite`）。
 
-### 方式一：双击启动（最省事，自动开浏览器）
-| 系统 | 操作 |
-|---|---|
-| **macOS** | 双击 `问卷系统/启动.command` |
-| **Windows** | 双击 `问卷系统/启动.bat` |
-
-启动后浏览器会自动打开「研究控制台」。关闭启动器窗口（或按 `Ctrl+C`）即停止服务。
-
-### 方式二：终端启动（所有系统通用）
 ```bash
 cd 问卷系统/backend
+cp .env.example .env      # 填入密钥（见下）
 node server.js
 ```
-启动后浏览器打开 <http://localhost:3000/> 。
 
-### 方式三：Linux / macOS 一键脚本
-```bash
-cd 问卷系统
-./start.sh            # 启动并自动开浏览器
-NO_OPEN=1 ./start.sh  # 无桌面环境（服务器）启动，不自动开浏览器
-```
+启动后访问 <http://localhost:3000/> （把 `localhost` 换成运行机器的局域网 IP 即可在他设备访问）。
 
-### 各系统启动对照表
-| 系统 | 双击启动器 | 终端命令 | 备注 |
-|---|---|---|---|
-| macOS | `问卷系统/启动.command` | `cd 问卷系统/backend && node server.js` | 已自带 Node 22 |
-| Windows | `问卷系统/启动.bat` | `cd 问卷系统\backend` → `node server.js` | 安装 Node 时勾选「Add to PATH」 |
-| Linux | （无 GUI 双击） | `cd 问卷系统 && ./start.sh` | 需先 `chmod +x start.sh`（已就绪） |
+**其他启动方式**
 
----
-
-## 跨设备 / 跨系统迁移须知（重要）
-后端默认把**工作区根目录**（即本 `README.md` 所在目录，含 `index.html`、`问卷系统/`、`盲审/`、`ai-aesthetic-engine/`）作为网站根。
-因此：
-
-1. **迁移到其他机器时，必须把这整个工作区目录一起拷贝**，保持目录层级，**不能只拷 `问卷系统/`**。否则打开 `/` 会找不到控制台、内部链接也会失效。
-2. 目标机器需先安装 Node ≥ 22.5。
-3. 数据文件 `问卷系统/backend/data.db`（SQLite）随目录一起走；换机器后数据自动跟随。
-
-> 如果只想要受访者库这份数据而不带其他子项目，可自行用 `STATIC_DIR` 环境变量把静态根指向任意目录：
-> `STATIC_DIR=/path/to/root PORT=8080 node 问卷系统/backend/server.js`
-
----
-
-## 启动后访问地址
-
-通过 `http://localhost:3000/` 访问（将 `localhost` 换成运行服务那台机器的局域网 IP，即可在其他设备访问）：
-
-| 页面 | 路径 |
+| 系统 | 操作 |
 |---|---|
-| 研究控制台（首页） | `/` 或 `/index.html` |
-| 受访者库（数据库） | `/问卷系统/index.html` |
-| 筛选问卷 | `/问卷系统/筛选问卷/index.html` |
-| 盲审（在线） | `/盲审/web/index.html` |
-| 盲审（离线录入） | `/盲审/盲审录入.html` |
-| AI 审美引擎 | `/ai-aesthetic-engine/index.html` |
+| macOS | 双击 `问卷系统/启动.command` |
+| Windows | 双击 `问卷系统/启动.bat` |
+| Linux / macOS 终端 | `cd 问卷系统 && ./start.sh`（`NO_OPEN=1 ./start.sh` 不自动开浏览器） |
 
 ---
 
-## 数据存储
+## ⚙️ 配置（`.env`）
 
-- 所有受访者数据落在 **`问卷系统/backend/data.db`**（SQLite 文件）。
-- 这是**唯一数据源**：运行 `node server.js` 的那台机器要一直开着，其他设备才能读到同步数据。
-- 跨设备共享 = 同局域网访问同一地址；异地访问需把后端部署到公网主机或配置隧道（本项目默认本地方案）。
-- 浏览器本地也有 localStorage 缓存作为回退；但只要后端在线，优先写入数据库。
+复制 `.env.example` 为 `.env` 并填写：
+
+| 变量 | 说明 |
+|---|---|
+| `IMG_PROVIDER` | 出图通道：`buddycloudimg`（默认混元）/ `jimeng` / `openai` / `none` |
+| `JIMENG_ACCESS_KEY_ID` / `JIMENG_SECRET_ACCESS_KEY` | 火山即梦鉴权（选即梦时必填） |
+| `BUDDY_CLOUD_TOKEN` | 内置混元 / 3D 技能会话令牌 |
+| `ADMIN_EMAIL` | 命中此邮箱的账户自动置为管理员 |
+| `RESET_CODE` | 自助重置密码共享码 |
+| `SMTP_*` | QQ 邮箱 SMTP（验证码找回密码，可选） |
+
+完整说明见 `问卷系统/backend/.env.example` 注释。
+
+> ⚠️ 安全：`.env` 与 `*.db` 已被 `.gitignore` 排除，**不会进入版本库**。切勿把真实密钥或数据库提交到公开仓库。
 
 ---
 
-## 后端 API 速查
+## 🌐 部署
+
+- 后端把**工作区根目录**作为静态根，同源托管所有页面与 `/api`。
+- 数据库：`问卷系统/backend/data.db`（SQLite，首次运行自动创建）；`backup.js` 每 6 小时热备（`VACUUM INTO`，不锁写）。
+- 公网示例：Caddy 反代 `:3000`（如 `imagemythos.fun`）。
+- 异地访问：把 `server.js` 跑在公网主机，或将静态根指向任意目录：
+  ```bash
+  STATIC_DIR=/path/to/root PORT=8080 node 问卷系统/backend/server.js
+  ```
+
+---
+
+## 📚 子模块文档
+
+- `ai-aesthetic-engine/README.md` — 引擎算法、题库与题库盲审历程
+- `问卷系统/backend/README.md` — 后端 API 与运行细节
+
+## 🔌 后端 API 速查
+
 - `GET  /api/health` → 健康检查 `{ ok: true, storage: "sqlite" }`
 - `GET  /api/db`     → 返回全部受访者 JSON 数组
-- `PUT  /api/db`     → 全量写入（body 为 JSON 数组），`Content-Type: application/json`
-
----
-
-## 常见问题
-- **端口被占用**：启动时指定其他端口 `PORT=8080 node 问卷系统/backend/server.js`，访问对应端口即可。
-- **CloudStudio（HTTPS）页面填了 http 后端连不上**：浏览器会因「混合内容」拦截。要么直接用后端同源页面（`http://<机器IP>:3000/`），要么给后端配 HTTPS 地址再填。
-- **Node 版本过低报错**：`node:sqlite` 需要 ≥ 22.5，升级 Node 即可。
-
-详见 `问卷系统/backend/README.md`。
+- `PUT  /api/db`     → 全量写入（body 为 JSON 数组）
+- `GET  /api/admin/*`→ 管理员接口（统一 401/403 护盾）

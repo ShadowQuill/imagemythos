@@ -42,7 +42,6 @@ G2*.md
 MVP*.md
 神圣理念_*.md
 显示功能增强方案.md
-menu.md
 _g2_*.mjs
 dedup_respondents.mjs
 diag_jimeng.cjs
@@ -55,3 +54,6 @@ console.html
 问卷系统/启动.command
 问卷系统/启动.bat
 问卷系统/.DS_Store
+
+# 引擎运行时产物（用户生成内容）
+ai-aesthetic-engine/generated/
