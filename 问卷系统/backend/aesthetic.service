@@ -1,0 +1,28 @@
+# ============================================================
+# systemd 单元（Linux 服务器部署用）
+# 安装：把本文件放到 /etc/systemd/system/aesthetic.service
+#       再执行：  sudo systemctl daemon-reload
+#                 sudo systemctl enable --now aesthetic
+# 查看：  sudo journalctl -u aesthetic -f
+# 注意：把下面所有绝对路径与 User 改成你的真实部署值
+# ============================================================
+[Unit]
+Description=AI 审美系统 · 神性测评后端
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/Users/hefeiyu/WorkBuddy/2026-08-04-12-23-07/问卷系统/backend
+ExecStart=/usr/bin/node /Users/hefeiyu/WorkBuddy/2026-08-04-12-23-07/问卷系统/backend/watchdog.js
+Environment=PORT=3000
+Environment=STATIC_DIR=/Users/hefeiyu/WorkBuddy/2026-08-04-12-23-07
+Environment=NO_OPEN=1
+# watchdog 自身已做崩溃重启；systemd 这里只兜底极端情况
+Restart=on-failure
+RestartSec=3
+User=hefeiyu
+StandardOutput=append:/Users/hefeiyu/WorkBuddy/2026-08-04-12-23-07/问卷系统/backend/logs/server.log
+StandardError=append:/Users/hefeiyu/WorkBuddy/2026-08-04-12-23-07/问卷系统/backend/logs/server.log
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ============================================================
+     launchd 清单（macOS 本地常驻 / 开机自启）
+     安装：  cp com.workbuddy.aesthetic.plist ~/Library/LaunchAgents/
+             launchctl load  ~/Library/LaunchAgents/com.workbuddy.aesthetic.plist
+     卸载：  launchctl unload ~/Library/LaunchAgents/com.workbuddy.aesthetic.plist
+     日志：  logs/server.log
+     注意：把下面所有绝对路径改成你的真实部署值；
+           node 路径用 `which node` 查得（如 /usr/local/bin/node 或 ~/.nvm/.../node）
+     ============================================================ -->
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>com.workbuddy.aesthetic</string>
+
+    <key>ProgramArguments</key>
+    <array>
+      <string>/Users/hefeiyu/.workbuddy/binaries/node/versions/22.22.2/bin/node</string>
+      <string>/Users/hefeiyu/WorkBuddy/2026-08-04-12-23-07/问卷系统/backend/watchdog.js</string>
+    </array>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+      <key>PORT</key>      <string>3000</string>
+      <key>STATIC_DIR</key><string>/Users/hefeiyu/WorkBuddy/2026-08-04-12-23-07</string>
+      <key>NO_OPEN</key>  <string>1</string>
+    </dict>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/hefeiyu/WorkBuddy/2026-08-04-12-23-07/问卷系统/backend</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/hefeiyu/WorkBuddy/2026-08-04-12-23-07/问卷系统/backend/logs/server.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/hefeiyu/WorkBuddy/2026-08-04-12-23-07/问卷系统/backend/logs/server.log</string>
+  </dict>
+</plist>

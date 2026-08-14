@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>🌊 神性流场 · AI 生成粒子艺术</title>
+<style>
+  :root{
+    --bg:#0a0a12; --ink:#f2eefb; --muted:#a79fc2; --line:rgba(255,255,255,.12);
+    --acc:#6bd0ff; --acc2:#b06bff; --card:rgba(20,16,34,.72); --chip:rgba(255,255,255,.08);
+  }
+  [data-theme="light"]{
+    --bg:#f3f0fb; --ink:#221a36; --muted:#6b6385; --line:rgba(20,12,40,.14);
+    --acc:#2aa6e0; --acc2:#7c3aed; --card:rgba(255,255,255,.78); --chip:rgba(30,12,60,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft Yahei",sans-serif;
+    overflow:hidden;-webkit-font-smoothing:antialiased}
+  #bg{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0}
+  .vignette{position:fixed;inset:0;z-index:2;pointer-events:none;
+    background:radial-gradient(ellipse at center, transparent 52%, rgba(0,0,0,.32) 100%)}
+  .topbar{position:fixed;top:0;left:0;right:0;z-index:5;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:10px 16px;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent);}
+  [data-theme="light"] .topbar{background:linear-gradient(180deg,rgba(255,255,255,.6),transparent);}
+  .home-btn{color:var(--ink);text-decoration:none;font-size:13px;opacity:.85;padding:6px 10px;border:1px solid var(--line);border-radius:10px}
+  .home-btn:hover{opacity:1}
+  .nav{display:flex;gap:6px}
+  .nav a{font-size:12px;padding:5px 9px;border:1px solid var(--line);border-radius:10px;color:var(--ink);text-decoration:none;opacity:.7}
+  .nav a.active{opacity:1;border-color:var(--acc);background:var(--chip)}
+  .title{font-size:15px;font-weight:600;letter-spacing:.5px}
+  .title .em{background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .spacer{flex:1}
+  .theme-btn{background:var(--chip);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:6px 10px;font-size:13px;cursor:pointer}
+  .top-actions{display:flex;gap:8px}
+  .panel{position:fixed;top:64px;right:14px;z-index:6;width:296px;max-height:calc(100vh - 90px);overflow:auto;
+    background:var(--card);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border:1px solid var(--line);border-radius:16px;padding:14px 14px 18px;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+  .panel.collapsed{width:auto}
+  .panel h2{font-size:13px;margin:2px 0 10px;display:flex;align-items:center;gap:8px}
+  .panel .ai{font-size:11px;color:var(--muted);font-weight:400}
+  .toggle{cursor:pointer;font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:3px 8px;background:var(--chip)}
+  .row{margin:11px 0}
+  .row label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:5px}
+  .row label b{color:var(--ink);font-weight:600}
+  input[type=range]{width:100%;accent-color:var(--acc)}
+  .desc-box{margin-top:6px}
+  .desc-box input{width:100%;padding:8px 10px;border-radius:10px;border:1px solid var(--line);
+    background:var(--chip);color:var(--ink);font-size:13px;outline:none}
+  .desc-box button{width:100%;padding:9px;border:none;border-radius:10px;cursor:pointer;
+    background:linear-gradient(90deg,var(--acc),var(--acc2));color:#fff;font-size:13px;font-weight:600}
+  .desc-box .hint{font-size:11px;color:var(--muted);margin-top:7px;line-height:1.5}
+  .palette{display:flex;gap:6px;margin-top:4px}
+  .palette i{flex:1;height:18px;border-radius:5px;display:block;border:1px solid var(--line)}
+  .preset-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .preset, .zodiac, .type{font-size:11px;padding:5px 9px;border-radius:20px;border:1px solid var(--line);background:var(--chip);color:var(--ink);cursor:pointer}
+  .zodiac.active, .preset.active, .type.active{opacity:1;border-color:var(--acc);background:rgba(107,208,255,.14)}
+  input[type=range]:disabled{opacity:.35;cursor:not-allowed}
+  .section-title{font-size:11px;color:var(--muted);margin:12px 0 6px}
+  .badge{position:fixed;left:16px;bottom:14px;z-index:5;font-size:11px;color:var(--muted);
+    background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 10px;max-width:62vw;line-height:1.5;font-variant-numeric:tabular-nums}
+  .badge b{color:var(--ink)}
+  .quiz-banner{position:fixed;left:50%;top:60px;transform:translateX(-50%);z-index:7;
+    display:flex;align-items:center;gap:10px;max-width:min(92vw,560px);
+    background:linear-gradient(90deg,rgba(107,208,255,.18),rgba(176,107,255,.18));
+    border:1px solid var(--line);border-radius:14px;padding:10px 14px;
+    font-size:12.5px;color:var(--ink);box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  .quiz-banner b{color:var(--acc)}
+  .quiz-banner a{color:#fff;background:linear-gradient(90deg,var(--acc),var(--acc2));
+    text-decoration:none;padding:6px 12px;border-radius:10px;font-weight:600;white-space:nowrap}
+  .quiz-banner .x{cursor:pointer;opacity:.6;font-size:16px;line-height:1;padding:0 2px}
+  .quiz-banner .x:hover{opacity:1}
+  .hidden{display:none!important}
+  ::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div class="vignette"></div>
+
+<div class="topbar">
+  <a href="/ai-aesthetic-engine/index.html" class="home-btn">← 返回首页</a>
+  <div class="nav">
+    <a href="/ai-aesthetic-engine/nebula.html">🌌 星云</a>
+    <a href="/ai-aesthetic-engine/flowfield.html" class="active">🌊 流场</a>
+    <a href="/ai-aesthetic-engine/galaxy.html">🌠 星系</a>
+  </div>
+  <div class="title">🌊 <span class="em">神性流场</span> · AI 生成粒子艺术</div>
+  <div class="spacer"></div>
+  <div class="top-actions">
+    <button id="regenBtn" class="theme-btn">🔄 重新生成</button>
+    <button id="pauseBtn" class="theme-btn">⏸ 暂停</button>
+  </div>
+  <button id="themeToggle" class="theme-btn">🌙 切暗色</button>
+  <button id="ecoToggle" class="theme-btn">🔋 后台暂停 · 开</button>
+</div>
+
+<div class="panel" id="panel">
+  <h2>🎛️ 可变视觉设计 <span class="ai">向量场驱动</span>
+    <span class="spacer" style="flex:1"></span><span class="toggle" id="panelToggle">收起</span></h2>
+
+  <div id="panelBody">
+    <div class="desc-box">
+      <input id="descInput" placeholder="描述你的流场，如：紫粉梦幻湍流 / 青蓝赛博涡流" />
+      <button id="genBtn">✦ 生成新作品</button>
+      <div class="hint">基于你的 <b>8 维审美向量</b>确定配色与运动气质；也可输入关键词或选择下方风格/星座实时改写。</div>
+    </div>
+
+    <div class="palette" id="palette"><i></i><i></i><i></i></div>
+
+    <div class="section-title">风格预设</div>
+    <div class="preset-row" id="presets">
+      <span class="preset" data-default="1">默认</span>
+      <span class="preset" data-d="紫粉梦幻湍流">紫粉梦</span>
+      <span class="preset" data-d="青蓝赛博湍流">赛博青</span>
+      <span class="preset" data-d="金紫神圣涡流">神圣紫金</span>
+      <span class="preset" data-d="深蓝以太涌动">梦幻蓝</span>
+      <span class="preset" data-d="翠绿极光涌动">极光绿</span>
+      <span class="preset" data-d="炽红火星风暴">炽红</span>
+    </div>
+
+    <div class="section-title">流场形态</div>
+    <div class="preset-row" id="ftypes">
+      <span class="type" data-ft="0">湍流</span>
+      <span class="type" data-ft="1">均匀气流</span>
+      <span class="type" data-ft="2">弯曲流线</span>
+      <span class="type" data-ft="3">奇异线</span>
+      <span class="type" data-ft="4">奇异点</span>
+      <span class="type" data-ft="5">涡街</span>
+      <span class="type" data-ft="6">环流</span>
+      <span class="type" data-ft="7">螺旋源汇</span>
+    </div>
+
+    <div class="section-title">十二星座</div>
+    <div class="preset-row" id="zodiacs">
+      <span class="zodiac" data-z="白羊">白羊</span>
+      <span class="zodiac" data-z="金牛">金牛</span>
+      <span class="zodiac" data-z="双子">双子</span>
+      <span class="zodiac" data-z="巨蟹">巨蟹</span>
+      <span class="zodiac" data-z="狮子">狮子</span>
+      <span class="zodiac" data-z="处女">处女</span>
+      <span class="zodiac" data-z="天秤">天秤</span>
+      <span class="zodiac" data-z="天蝎">天蝎</span>
+      <span class="zodiac" data-z="射手">射手</span>
+      <span class="zodiac" data-z="摩羯">摩羯</span>
+      <span class="zodiac" data-z="水瓶">水瓶</span>
+      <span class="zodiac" data-z="双鱼">双鱼</span>
+    </div>
+
+    <div class="row">
+      <label>流速 <b id="vSpeed"></b></label>
+      <input type="range" id="pSpeed" min="0" max="100" value="30">
+    </div>
+    <div class="row">
+      <label>湍流强度 <b id="vTurb"></b></label>
+      <input type="range" id="pTurb" min="0" max="100" value="55">
+    </div>
+    <div class="row">
+      <label>卷曲度 <b id="vCurl"></b></label>
+      <input type="range" id="pCurl" min="0" max="100" value="45">
+    </div>
+    <div class="row">
+      <label>繁复度 <b id="vDetail"></b></label>
+      <input type="range" id="pDetail" min="0" max="100" value="55">
+    </div>
+    <div class="row">
+      <label>轨迹长度 <b id="vTrail"></b></label>
+      <input type="range" id="pTrail" min="0" max="100" value="70">
+    </div>
+    <div class="row">
+      <label>亮度 <b id="vBright"></b></label>
+      <input type="range" id="pBright" min="0" max="100" value="55">
+    </div>
+  </div>
+</div>
+
+<div class="badge" id="badge"></div>
+
+<div class="quiz-banner hidden" id="quizBanner">
+  <span>🌊 当前为 <b>默认流场</b>，尚未读取你的审美特质。完成一次测评可生成专属于你的作品。</span>
+  <a href="/ai-aesthetic-engine/index.html" target="_blank">去做测评</a>
+  <span class="x" id="quizClose">×</span>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  let energySave = true;
+  let paused = false;
+  // ---------- 主题 ----------
+  function themeInit(){
+    const saved = localStorage.getItem('aae-theme');
+    if(saved) document.documentElement.setAttribute('data-theme', saved);
+    refreshThemeBtn();
+  }
+  function refreshThemeBtn(){
+    const t = document.documentElement.getAttribute('data-theme');
+    document.getElementById('themeToggle').textContent = (t==='dark'?'🌙 切暗色':'☀️ 切亮色');
+  }
+  document.getElementById('themeToggle').addEventListener('click', ()=>{
+    const cur = document.documentElement.getAttribute('data-theme');
+    const next = (cur==='dark')?'light':'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try{ localStorage.setItem('aae-theme', next); }catch(e){}
+    refreshThemeBtn();
+    applyBg();
+  });
+  themeInit();
+
+  // ---------- 节能/暂停 ----------
+  const ecoBtn = document.getElementById('ecoToggle');
+  const pauseBtn = document.getElementById('pauseBtn');
+  function refreshEcoBtn(){ ecoBtn.textContent = energySave ? '🔋 后台暂停 · 开' : '🔋 后台暂停 · 关'; }
+  function refreshPauseBtn(){ pauseBtn.textContent = paused ? '▶ 继续' : '⏸ 暂停'; }
+  ecoBtn.addEventListener('click', ()=>{
+    energySave = !energySave; refreshEcoBtn();
+    if(energySave){ if(!document.hidden) startLoop(); }
+    else { startLoop(); }
+  });
+  pauseBtn.addEventListener('click', ()=>{ paused = !paused; refreshPauseBtn(); });
+  refreshEcoBtn(); refreshPauseBtn();
+
+  // ---------- 工具 ----------
+  function mulberry32(a){
+    return function(){
+      a|=0; a=a+0x6D2B79F5|0;
+      let t=Math.imul(a^a>>>15,1|a);
+      t=t+Math.imul(t^t>>>7,61|t)^t;
+      return ((t^t>>>14)>>>0)/4294967296;
+    };
+  }
+  function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+  function clamp01(x){return clamp(x,0,1);}
+  function hsv2rgb(h,s,v){
+    h=((h%1)+1)%1;
+    let i=Math.floor(h*6), f=h*6-i;
+    let p=v*(1-s), q=v*(1-s*f), t=v*(1-s*(1-f)), r,g,b;
+    switch(i%6){
+      case 0:r=v;g=t;b=p;break; case 1:r=q;g=v;b=p;break; case 2:r=p;g=v;b=t;break;
+      case 3:r=p;g=q;b=v;break; case 4:r=t;g=p;b=v;break; default:r=v;g=p;b=q;break;
+    }
+    return [r,g,b];
+  }
+  function rgb2hsl(r,g,b){
+    let max=Math.max(r,g,b), min=Math.min(r,g,b), h=0, s=0, l=(max+min)/2;
+    const d=max-min;
+    if(d!==0){
+      s = l>0.5 ? d/(2-max-min) : d/(max+min);
+      if(max===r) h=((g-b)/d+(g<b?6:0))/6;
+      else if(max===g) h=((b-r)/d+2)/6;
+      else h=((r-g)/d+4)/6;
+    }
+    return [h,s,l];
+  }
+
+  // ---------- Perlin 噪声 ----------
+  function makePerlin(seed){
+    const perm = Array.from({length:256},(_,i)=>i);
+    const rng = mulberry32(seed);
+    for(let i=255;i>0;i--){ const j=Math.floor(rng()*(i+1)); const tmp=perm[i];perm[i]=perm[j];perm[j]=tmp; }
+    const p = new Uint8Array(512);
+    for(let i=0;i<512;i++) p[i]=perm[i&255];
+    const fade=t=>t*t*t*(t*(t*6-15)+10);
+    const lerp=(a,b,t)=>a+t*(b-a);
+    function grad(h,x,y,z){
+      h&=15; const u=h<8?x:y; const v=h<4?y:(h===12||h===14?x:z);
+      return ((h&1)===0?u:-u)+((h&2)===0?v:-v);
+    }
+    return function(x,y,z){
+      const X=Math.floor(x)&255, Y=Math.floor(y)&255, Z=Math.floor(z)&255;
+      x-=Math.floor(x); y-=Math.floor(y); z-=Math.floor(z);
+      const u=fade(x),v=fade(y),w=fade(z);
+      const A=p[X]+Y, AA=p[A]+Z, AB=p[A+1]+Z, B=p[X+1]+Y, BA=p[B]+Z, BB=p[B+1]+Z;
+      return lerp(
+        lerp(lerp(grad(p[AA],x,y,z),   grad(p[BA],x-1,y,z),   u),
+             lerp(grad(p[AB],x,y-1,z), grad(p[BB],x-1,y-1,z), u), v),
+        lerp(lerp(grad(p[AA+1],x,y,z-1),grad(p[BA+1],x-1,y,z-1),u),
+             lerp(grad(p[AB+1],x,y-1,z-1),grad(p[BB+1],x-1,y-1,z-1),u), v),
+        w);
+    };
+  }
+
+  // ---------- Canvas ----------
+  const canvas = document.getElementById('bg');
+  const ctx = canvas.getContext('2d');
+  let W=0, H=0, dpr=1;
+  let bgRGB=[10,10,18];
+  function applyBg(){
+    const t=document.documentElement.getAttribute('data-theme');
+    bgRGB = (t==='dark') ? [10,10,18] : [243,240,251];
+  }
+  applyBg();
+  function resize(){
+    dpr=Math.min(window.devicePixelRatio||1,2);
+    W=innerWidth; H=innerHeight;
+    canvas.width=Math.floor(W*dpr); canvas.height=Math.floor(H*dpr);
+    canvas.style.width=W+'px'; canvas.style.height=H+'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.fillStyle=`rgb(${bgRGB[0]},${bgRGB[1]},${bgRGB[2]})`;
+    ctx.fillRect(0,0,W,H);
+  }
+  window.addEventListener('resize', resize); resize();
+
+  // ---------- 参数 ----------
+  const params = {
+    scale:0.0010, speed:1.1, turb:1.25, curl:0.9, fade:0.045, bright:0.75, detail:1.1,
+    flowType:0,   // 0湍流 1均匀气流 2弯曲流线 3奇异线 4奇异点
+    pal:[[0.75,0.25,0.65],[0.45,0.20,0.75],[0.95,0.55,0.35]]
+  };
+  const FLOW_TYPES = {0:'湍流',1:'均匀气流',2:'弯曲流线',3:'奇异线',4:'奇异点',5:'涡街',6:'环流',7:'螺旋源汇'};
+  let seed = Math.floor(Math.random()*1e9);
+  let perlin = makePerlin(seed);
+  let particles = [];
+  const COUNT = 2200;
+  let flowBaseAngle = 0;        // 均匀/弯曲气流的主导方向
+  let centers = [];             // 奇异点：源/汇/涡旋临界点
+  function buildCenters(){
+    const n = 3 + (seed % 3);   // 3..5 个临界点
+    const rng = mulberry32((seed ^ 0x9e3779b9) >>> 0);
+    centers = [];
+    for(let i=0;i<n;i++){
+      centers.push({
+        x: rng()*W, y: rng()*H,
+        r: 160 + rng()*220,                              // 局部影响半径
+        rad:  (rng()<0.5?-1:1)*(0.0016+rng()*0.0024),   // 负=汇(向心) 正=源(发散)
+        vort: (rng()<0.5?-1:1)*(0.0014+rng()*0.0022)    // 切向涡旋（旋向）
+      });
+    }
+    flowBaseAngle = (seed % 360) * Math.PI/180;
+  }
+
+  function spawn(p){
+    p.x = Math.random()*W;
+    p.y = Math.random()*H;
+    p.hueOff = (Math.random()-0.5)*0.16;
+    p.size = 0.4 + Math.random()*1.0;
+    p.depth = Math.random();          // 0..1 景深：影响速度/线宽/亮度，形成层次
+    p.life = 0;
+    p.maxLife = 160 + Math.random()*540;
+  }
+  function buildParticles(){
+    particles = new Array(COUNT);
+    for(let i=0;i<COUNT;i++){ particles[i]={}; spawn(particles[i]); }
+  }
+
+  // 星座 = 形态/形状（综合星座象征形状 + 占星四象特质），不改颜色
+  // speed 流速, turb 湍流, curl 卷曲, scale 特征尺度(大=细碎), bright 亮度, detail 繁复, ft 流场形态
+  const ZODIAC={
+    白羊:{speed:1.6,  turb:1.4,  curl:1.2,  scale:1.3,  bright:0.9,  detail:1.2, ft:0, pal:'炽红火星风暴'},  // 火/开创/冲劲·急湍
+    金牛:{speed:0.7,  turb:0.6,  curl:0.7,  scale:0.8,  bright:0.8,  detail:0.6, ft:1, pal:'翠绿极光涌动'},  // 土/稳固·均匀舒缓
+    双子:{speed:1.3,  turb:1.0,  curl:1.3,  scale:1.0,  bright:0.9,  detail:1.1, ft:2, pal:'青蓝赛博湍流'},  // 风/双重·弯曲流线
+    巨蟹:{speed:0.7,  turb:0.8,  curl:0.8,  scale:1.0,  bright:0.85, detail:0.9, ft:4, pal:'深蓝以太涌动'},  // 水/守护·奇异点环绕
+    狮子:{speed:1.2,  turb:1.1,  curl:0.95, scale:0.85, bright:1.0,  detail:0.8, ft:0, pal:'金紫神圣涡流'},  // 火/王·磅礴湍流
+    处女:{speed:0.8,  turb:0.6,  curl:0.7,  scale:1.4,  bright:0.8,  detail:1.6, ft:2, pal:'深蓝以太涌动'},  // 土/精细·纤毫弯曲
+    天秤:{speed:0.9,  turb:0.75, curl:0.85, scale:1.0,  bright:0.9,  detail:1.0, ft:2, pal:'紫粉梦幻湍流'},  // 风/平衡·对称弯曲
+    天蝎:{speed:0.7,  turb:1.5,  curl:1.3,  scale:1.1,  bright:0.85, detail:1.3, ft:3, pal:'金紫神圣涡流'},  // 水/深邃·奇异线
+    射手:{speed:1.6,  turb:1.25, curl:1.2,  scale:0.8,  bright:0.95, detail:1.2, ft:0, pal:'青蓝赛博湍流'},  // 火/扩张·舒展湍流
+    摩羯:{speed:0.65, turb:0.6,  curl:0.65, scale:1.0,  bright:0.75, detail:0.7, ft:1, pal:'深蓝以太涌动'},  // 土/克制·均匀规整
+    水瓶:{speed:1.3,  turb:1.1,  curl:1.2,  scale:1.0,  bright:0.9,  detail:1.2, ft:3, pal:'青蓝赛博湍流'},  // 风/流动·奇异线
+    双鱼:{speed:0.8,  turb:1.15, curl:1.0,  scale:1.1,  bright:0.95, detail:1.1, ft:4, pal:'紫粉梦幻湍流'}   // 水/梦幻·奇异点
+  };
+  const STYLE_PAL={
+    '紫粉梦幻湍流':[[0.85,0.30,0.65],[0.55,0.20,0.80],[0.95,0.70,0.45]],
+    '青蓝赛博湍流':[[0.10,0.60,0.95],[0.20,0.85,0.90],[0.75,0.20,0.65]],
+    '金紫神圣涡流':[[1.0,0.80,0.35],[0.55,0.20,0.80],[0.95,0.95,0.85]],
+    '深蓝以太涌动':[[0.15,0.25,0.55],[0.10,0.50,0.85],[0.65,0.85,0.95]],
+    '翠绿极光涌动':[[0.15,0.75,0.45],[0.55,0.95,0.35],[0.05,0.35,0.25]],
+    '炽红火星风暴':[[1.0,0.15,0.10],[1.0,0.55,0.15],[0.55,0.10,0.05]]
+  };
+
+  function setPalette(pal){ params.pal = pal; renderPalette(); }
+
+  function buildFromVector(vec){
+    const has = (vec && vec.length>=8);
+    const v = has ? vec : [0,0,0,0,0,0,0,0];
+    const f = x => clamp01((clamp(x,-1,1)*0.5)+0.5);
+    const F = { o:f(v[0]), s:f(v[1]), w:f(v[2]), e:f(v[3]), n:f(v[4]), t:f(v[5]), l:f(v[6]), c:f(v[7]) };
+    let hue = 0.583 - 0.505*F.w;
+    const kc = clamp01((F.c-0.5)*1.2);  hue = hue*(1-kc) + 0.125*kc;       // 神圣→金
+    if(F.n<0.4){ const kn=(0.4-F.n); hue = hue*(1-kn*0.7) + 0.78*(kn*0.7); } // 人工→霓虹紫
+    hue = ((hue%1)+1)%1;
+    let sat = clamp01(0.30 + 0.5*F.e + 0.15*(1-F.s));
+    params.pal = [hsv2rgb(hue,sat,0.95), hsv2rgb((hue+0.12)%1,sat*0.85,0.85), hsv2rgb((hue+0.55)%1,0.65,1.0)];
+    // 结构形态：秩序→弯曲流线；混沌→湍流；中性→均匀（仅有向量且用户未手动选类型时）
+    if(has && !manualType){
+      if(v[0] > 0.30) setType(2);
+      else if(v[0] < -0.30) setType(0);
+      else setType(1);
+    }
+    params.scale  = 0.0006 + 0.0018*F.c;      // 神圣→大尺度
+    params.speed  = 0.5  + 1.8 *F.l;           // 轻盈→快
+    params.turb   = 0.5  + 1.6 *F.t;           // 未来→繁复
+    params.curl   = 0.3  + 1.7 *F.t;
+    params.detail = 0.4  + 1.5 *F.t;
+    params.fade   = 0.12 - 0.09*F.l;            // 轻盈→拖尾长
+    params.bright = 0.45 + 0.40*F.e + 0.15*(1-F.s);
+    clampParams(); syncSlidersFromParams(); renderPalette();
+  }
+  function applyStyle(text){
+    text=(text||'').toLowerCase();
+    for(const name in STYLE_PAL){
+      if(text.indexOf(name.replace(/湍流|涡流|涌动|风暴/,'').toLowerCase())>=0 || text===name.toLowerCase()){
+        setPalette(STYLE_PAL[name]); return;
+      }
+    }
+    applyDescription(text);
+  }
+  function applyDescription(text){
+    text=(text||'').toLowerCase(); if(!text) return;
+    const hueMap={紫:270,purple:270,紫罗兰:270,violet:270,lavender:270,
+      金:45,gold:45,琥珀:40,橙:28,orange:28,蓝:210,blue:210,青:185,cyan:185,翠:150,绿:135,green:135,
+      粉:330,pink:330,红:0,red:0,玫:340};
+    let fh=null;
+    for(const k in hueMap){ if(text.indexOf(k)>=0){ fh=hueMap[k]/360; break; } }
+    if(fh!==null){
+      const sat=text.indexOf('赛博')>=0||text.indexOf('cyber')>=0?0.95:0.75;
+      setPalette([hsv2rgb(fh,sat,0.95), hsv2rgb((fh+0.12)%1,sat*0.85,0.85), hsv2rgb((fh+0.55)%1,0.65,1.0)]);
+    }
+    if(text.indexOf('神圣')>=0||text.indexOf('divine')>=0) setPalette(STYLE_PAL['金紫神圣涡流']);
+    if(text.indexOf('梦幻')>=0||text.indexOf('dream')>=0){ params.bright*=1.1; }
+    if(text.indexOf('湍')>=0||text.indexOf('turb')>=0){ params.turb*=1.25; }
+    if(text.indexOf('缓')>=0||text.indexOf('slow')>=0){ params.speed*=0.55; }
+    if(text.indexOf('急')>=0||text.indexOf('fast')>=0){ params.speed*=1.5; }
+    if(text.indexOf('密')>=0||text.indexOf('dense')>=0){ params.fade*=0.75; }
+    if(text.indexOf('疏')>=0||text.indexOf('sparse')>=0){ params.fade=Math.min(0.12,params.fade*1.4); }
+    // 形态关键词 → 切流场类型
+    if(text.indexOf('均匀')>=0) setType(1);
+    else if(text.indexOf('弯曲')>=0||text.indexOf('流线')>=0) setType(2);
+    else if(text.indexOf('奇异线')>=0||text.indexOf('间断')>=0||text.indexOf('分支')>=0||text.indexOf('汇合')>=0) setType(3);
+    else if(text.indexOf('奇异点')>=0||text.indexOf('静风')>=0||text.indexOf('零风')>=0||text.indexOf('临界点')>=0) setType(4);
+    else if(text.indexOf('涡街')>=0||text.indexOf('卡门')>=0||text.indexOf('脱落')>=0) setType(5);
+    else if(text.indexOf('环流')>=0||text.indexOf('涡环')>=0||text.indexOf('闭合')>=0) setType(6);
+    else if(text.indexOf('螺旋')>=0||text.indexOf('源汇')>=0||text.indexOf('对数')>=0) setType(7);
+    else if(text.indexOf('湍流')>=0||text.indexOf('乱流')>=0) setType(0);
+    clampParams();
+    syncSlidersFromParams();
+    renderPalette();
+  }
+  function highlightPreset(name){
+    document.querySelectorAll('#presets .preset').forEach(p=>{
+      const isDef = p.hasAttribute('data-default');
+      p.classList.toggle('active', !isDef && p.getAttribute('data-d')===name);
+    });
+  }
+  function applyZodiacMorph(sign, skipPalette){
+    const z=ZODIAC[sign]; if(!z) return;
+    params.speed  = clamp(params.speed*z.speed, 0.3, 3.0);
+    params.turb   = clamp(params.turb*z.turb, 0.4, 3.5);
+    params.curl   = clamp(params.curl*z.curl, 0.2, 2.2);
+    params.scale  = clamp(params.scale*z.scale, 0.0005, 0.003);
+    params.bright = clamp(params.bright*z.bright, 0.35, 1.0);
+    params.detail = clamp(params.detail*z.detail, 0.0, 2.0);
+    if(typeof z.ft === 'number') setType(z.ft);
+    if(!skipPalette && z.pal && STYLE_PAL[z.pal]){
+      setPalette(STYLE_PAL[z.pal]);
+      activePresetName = z.pal;
+      highlightPreset(z.pal);
+    }
+    clampParams(); syncSlidersFromParams(); renderPalette();
+  }
+  function setType(idx){
+    if(!(idx in FLOW_TYPES)) return;
+    idx = Number(idx);
+    params.flowType = idx;
+    activeType = idx;
+    document.querySelectorAll('#ftypes .type').forEach(el=>{
+      el.classList.toggle('active', Number(el.getAttribute('data-ft'))===idx);
+    });
+    // 湍流/均匀/涡街/螺旋 用扰动；湍流/弯曲/环流/螺旋 用卷曲
+    toggleSlider('pTurb',  idx===0 || idx===1 || idx===5 || idx===7);
+    toggleSlider('pCurl',  idx===0 || idx===2 || idx===6 || idx===7);
+  }
+  function toggleSlider(id, on){
+    const el=document.getElementById(id); if(!el) return;
+    el.disabled = !on;
+  }
+  function clampParams(){
+    params.scale=clamp(params.scale,0.0005,0.003);
+    params.speed=clamp(params.speed,0.3,3.0);
+    params.turb=clamp(params.turb,0.4,3.5);
+    params.curl=clamp(params.curl,0.2,2.2);
+    params.detail=clamp(params.detail,0.0,2.0);
+    params.fade=clamp(params.fade,0.015,0.14);
+    params.bright=clamp(params.bright,0.35,1.0);
+  }
+  function renderPalette(){
+    const pal=document.getElementById('palette').children;
+    for(let i=0;i<3;i++) pal[i].style.background='rgb('+params.pal[i].map(x=>Math.round(x*255)).join(',')+')';
+  }
+
+  // ---------- 渲染循环 ----------
+  let running=false, rafId=null, lastTs=null;
+  const t0=performance.now();
+  function lerpHSL(a,b,t){
+    let dh=b[0]-a[0];
+    if(dh>0.5) dh-=1; else if(dh<-0.5) dh+=1;   // 取最短色相弧
+    return [a[0]+dh*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t];
+  }
+  function step(now){
+    if(energySave && document.hidden){ running=false; return; }
+    if(paused){ rafId=requestAnimationFrame(step); return; }
+    if(lastTs===null) lastTs=now;
+    const t=(now-t0)/1000;
+    ctx.fillStyle=`rgba(${bgRGB[0]},${bgRGB[1]},${bgRGB[2]},${params.fade})`;
+    ctx.fillRect(0,0,W,H);
+    ctx.lineCap='round';
+    const TWO=Math.PI*2;
+    const speed=params.speed, scale=params.scale, turb=params.turb, curl=params.curl, detail=params.detail;
+    const pal=params.pal;
+    const hsl0=rgb2hsl(...pal[0]), hsl1=rgb2hsl(...pal[1]), hsl2=rgb2hsl(...pal[2]);
+    const type = params.flowType;
+    for(let i=0;i<COUNT;i++){
+      const p=particles[i];
+      const dx=p.x*scale, dy=p.y*scale;
+      let dirx=0, diry=0, smag=0;
+      if(type===0){
+        // 湍流：多倍频 + 卷曲，繁复而不杂乱
+        const a1 = perlin(dx, dy, t*0.04) * TWO * turb;
+        const a2 = perlin(dx*2.3+100.0, dy*2.3+100.0, t*0.02) * TWO * curl;
+        const a3 = perlin(dx*5.5+200.0, dy*5.5+200.0, t*0.06) * TWO * 0.5 * detail * curl;
+        const ang = a1 + a2 + a3;
+        dirx=Math.cos(ang); diry=Math.sin(ang);
+        smag = speed*(0.55 + 0.9*p.depth);
+      } else if(type===1){
+        // 均匀气流：单一主导方向 + 轻微扰动
+        const wob = perlin(dx*1.5+50.0, dy*1.5+50.0, t*0.01) * 0.30 * turb;
+        const ang = flowBaseAngle + wob;
+        dirx=Math.cos(ang); diry=Math.sin(ang);
+        smag = speed*(0.7 + 0.6*p.depth);
+      } else if(type===2){
+        // 弯曲流线：宽缓正弦弯曲 + 流场扭曲
+        const curve = Math.sin(p.x*scale*2.2 + t*0.05)*0.7 + perlin(dx*0.9, dy*0.9, t*0.02)*0.6;
+        const ang = flowBaseAngle + curve*curl*1.4;
+        dirx=Math.cos(ang); diry=Math.sin(ang);
+        smag = speed*(0.6 + 0.7*p.depth);
+      } else if(type===3){
+        // 奇异线：风向沿场等值面不连续，分隔线处风速趋零并汇合/分支
+        const field = perlin(dx*0.7, dy*0.7, t*0.02);   // -1..1
+        const ang = field*Math.PI*2.0*1.3;
+        const ridge = Math.abs(field);                   // 沿分隔线→0
+        dirx=Math.cos(ang); diry=Math.sin(ang);
+        const mag = 0.15 + ridge*1.0;                    // 线处减速（间断）
+        const pa = ang + Math.PI/2;                       // 垂直方向朝线汇聚（汇合渐近线）
+        const conv = (field>0?-1:1) * (1.0 - Math.min(1.0, ridge*4.0)) * 0.7;
+        dirx += Math.cos(pa)*conv; diry += Math.sin(pa)*conv;
+        const dl=Math.hypot(dirx,diry)+1e-5; dirx/=dl; diry/=dl;
+        smag = speed*(0.5 + 0.8*p.depth)*mag;
+      } else if(type===4){
+        // 奇异点：源/汇/涡旋构成的临界点，中心处风速为零（静风点）
+        let vx=0, vy=0;
+        for(let k=0;k<centers.length;k++){
+          const c=centers[k];
+          const ddx=p.x-c.x, ddy=p.y-c.y;
+          const r2 = ddx*ddx + ddy*ddy;
+          const wgt = Math.exp(-r2/(c.r*c.r));      // 局部影响，远处归零
+          vx += (c.rad*ddx + c.vort*(-ddy)) * wgt;  // 线性场：中心处速度为零
+          vy += (c.rad*ddy + c.vort*( ddx)) * wgt;
+        }
+        const wA = perlin(dx*2.0, dy*2.0, t*0.03)*0.5*detail;
+        vx += Math.cos(wA*TWO)*0.25; vy += Math.sin(wA*TWO)*0.25;   // 轻微环境扰动
+        const len=Math.hypot(vx,vy)+1e-5;
+        dirx=vx/len; diry=vy/len;
+        smag = speed*(0.4 + 0.8*p.depth)*Math.min(1.6, len);  // 近奇异点→零速（静风）
+      } else if(type===5){
+        // 涡街：圆柱绕流后交替脱落的卡门涡街
+        const cx = W*0.5, cy = H*0.5;
+        const yy = (p.y - cy) * scale;
+        const xx = (p.x - cx) * scale;
+        const stagger = Math.sin(xx*2.5 - t*0.15)*0.35;
+        const vort = Math.cos((yy - stagger)*3.0 + xx*2.0)*Math.exp(-Math.abs(yy)*0.6);
+        const baseAng = flowBaseAngle;
+        const ang = baseAng + vort*turb*1.8 + perlin(dx*2.0, dy*2.0, t*0.03)*0.25*detail;
+        dirx=Math.cos(ang); diry=Math.sin(ang);
+        smag = speed*(0.5 + 0.8*p.depth)*(0.6 + 0.8*Math.abs(vort));
+      } else if(type===6){
+        // 环流：围绕多个中心的闭合环流，形成涡旋环
+        let vx=0, vy=0;
+        let minD = 1e6;
+        for(let k=0;k<centers.length;k++){
+          const c=centers[k];
+          const ddx=p.x-c.x, ddy=p.y-c.y;
+          const r2 = ddx*ddx + ddy*ddy;
+          const d = Math.sqrt(r2)+1e-4;
+          minD = Math.min(minD, d);
+          const wgt = Math.exp(-r2/(c.r*c.r*1.6));
+          vx += (-ddy/d) * wgt * c.vort;
+          vy += ( ddx/d) * wgt * c.vort;
+        }
+        const ringAng = Math.atan2(vy, vx);
+        const ang = ringAng + curl*0.8*Math.sin(minD*scale*4.0 + t*0.05);
+        dirx=Math.cos(ang); diry=Math.sin(ang);
+        smag = speed*(0.45 + 0.75*p.depth)*Math.min(1.4, Math.hypot(vx,vy)+0.3);
+      } else {
+        // 螺旋源汇：中心源/汇 + 切向涡旋组合，形成对数螺旋
+        let vx=0, vy=0;
+        for(let k=0;k<centers.length;k++){
+          const c=centers[k];
+          const ddx=p.x-c.x, ddy=p.y-c.y;
+          const r2 = ddx*ddx + ddy*ddy;
+          const d = Math.sqrt(r2)+1e-4;
+          const wgt = Math.exp(-r2/(c.r*c.r));
+          // 径向源/汇 + 切向涡旋
+          vx += (c.rad*ddx/d + c.vort*(-ddy)/d) * wgt;
+          vy += (c.rad*ddy/d + c.vort*( ddx)/d) * wgt;
+        }
+        const spiralAng = Math.atan2(vy, vx);
+        const ang = spiralAng + perlin(dx*1.5, dy*1.5, t*0.02)*0.5*turb;
+        dirx=Math.cos(ang); diry=Math.sin(ang);
+        smag = speed*(0.5 + 0.85*p.depth)*Math.min(1.5, Math.hypot(vx,vy));
+      }
+      const nx = p.x + dirx*smag;
+      const ny = p.y + diry*smag;
+      // 三段配色沿空间平滑过渡（A→B→C）
+      const f = clamp01(0.5 + 0.5*Math.sin(p.x*0.004 + p.y*0.002 + t*0.05));
+      const hsl = (f<0.5) ? lerpHSL(hsl0,hsl1,f*2.0) : lerpHSL(hsl1,hsl2,(f-0.5)*2.0);
+      const light = 42 + p.depth*18 + p.size*8;
+      const alpha = (0.30 + 0.28*p.depth) * params.bright;
+      ctx.strokeStyle = `hsla(${((hsl[0]+p.hueOff)*360).toFixed(1)}, ${(hsl[1]*100).toFixed(0)}%, ${light.toFixed(0)}%, ${alpha.toFixed(2)})`;
+      ctx.lineWidth = (0.5 + p.depth*1.3)*p.size;
+      ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(nx,ny); ctx.stroke();
+      p.x=nx; p.y=ny; p.life++;
+      if(p.life>p.maxLife || nx<-5||nx>W+5||ny<-5||ny>H+5) spawn(p);
+    }
+    rafId=requestAnimationFrame(step);
+  }
+  function startLoop(){
+    if(running) return;
+    if(energySave && document.hidden) return;
+    running=true; lastTs=null;
+    rafId=requestAnimationFrame(step);
+  }
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.hidden) return;
+    lastTs=null; startLoop();
+  });
+
+  // ---------- UI ----------
+  const sliderMap={
+    pSpeed:['speed',0.3,3.0,'vSpeed',v=>v.toFixed(2)],
+    pTurb:['turb',0.4,3.5,'vTurb',v=>v.toFixed(2)],
+    pCurl:['curl',0.2,2.2,'vCurl',v=>v.toFixed(2)],
+    pDetail:['detail',0.0,2.0,'vDetail',v=>Math.round(v*100)+'%'],
+    pTrail:['fade',0.015,0.14,'vTrail',v=>Math.round((1-(v-0.015)/0.125)*100)+'%'],
+    pBright:['bright',0.35,1.0,'vBright',v=>Math.round(v*100)+'%']
+  };
+  function syncSlidersFromParams(){
+    setSl('pSpeed', params.speed, 0.3,3.0);
+    setSl('pTurb', params.turb, 0.4,3.5);
+    setSl('pCurl', params.curl, 0.2,2.2);
+    setSl('pDetail', params.detail, 0.0,2.0);
+    setSlTrait('pTrail', (1-(params.fade-0.015)/0.125));
+    setSl('pBright', params.bright, 0.35,1.0);
+  }
+  function setSl(id,val,min,max){
+    const el=document.getElementById(id); if(!el)return;
+    el.value=Math.round((val-min)/(max-min)*100);
+    const lab=document.getElementById(sliderMap[id][3]); if(lab) lab.textContent=sliderMap[id][4](val);
+  }
+  function setSlTrait(id,frac){
+    const el=document.getElementById(id); if(!el)return;
+    el.value=Math.round(clamp01(frac)*100);
+    document.getElementById('vTrail').textContent=Math.round(clamp01(frac)*100)+'%';
+  }
+  function trailFromSlider(val){ return 0.14 - (val/100)*(0.14-0.015); }
+  Object.keys(sliderMap).forEach(id=>{
+    const [key,min,max,labId,fmt]=sliderMap[id];
+    const el=document.getElementById(id);
+    el.addEventListener('input', ()=>{
+      let val;
+      if(id==='pTrail'){ val=trailFromSlider(Number(el.value)); }
+      else { val = Number(el.value)/100*(max-min)+min; }
+      params[key]=val;
+      if(id==='pTrail'){ document.getElementById(labId).textContent=el.value+'%'; }
+      else document.getElementById(labId).textContent=fmt(val);
+    });
+  });
+
+  document.getElementById('panelToggle').addEventListener('click', ()=>{
+    const p=document.getElementById('panel'), b=document.getElementById('panelBody');
+    const c=p.classList.toggle('collapsed');
+    b.classList.toggle('hidden', c);
+    document.getElementById('panelToggle').textContent = c?'展开':'收起';
+  });
+
+  function loadVec(){
+    try{
+      const raw=localStorage.getItem('aae-aesthetic-vector');
+      if(raw){ const a=JSON.parse(raw); if(Array.isArray(a)&&a.length>=8) return a; }
+    }catch(e){} return null;
+  }
+  let activeZodiac=null;       // 星座 → 形态/形状
+  let activePresetName=null;   // 风格预设 → 颜色
+  let activeType=0;            // 流场形态
+  let manualType=false;        // 用户手动选过类型后，向量不再覆盖类型
+  let suppressZodiacPalette=false; // 用户手动选预设时，本次允许覆盖星座配色
+  function doGenerate(){
+    const txt=document.getElementById('descInput').value.trim();
+    seed = Math.floor(Math.random()*1e9);
+    perlin = makePerlin(seed);
+    buildCenters();
+    buildFromVector(loadVec());
+    if(txt) applyStyle(txt);                          // 风格预设关键词 / 自由描述 → 仅改色
+    else if(activePresetName) setPalette(STYLE_PAL[activePresetName]);
+    if(activeZodiac) applyZodiacMorph(activeZodiac, suppressZodiacPalette);  // 星座 → 形态 + 风格预设
+    suppressZodiacPalette=false;
+    clampParams(); syncSlidersFromParams(); renderPalette();
+    buildParticles();
+    ctx.fillStyle=`rgb(${bgRGB[0]},${bgRGB[1]},${bgRGB[2]})`; ctx.fillRect(0,0,W,H);
+    setBadge(txt);
+  }
+  document.getElementById('genBtn').addEventListener('click', doGenerate);
+  document.getElementById('regenBtn').addEventListener('click', doGenerate);
+  document.querySelectorAll('.preset').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      if(el.hasAttribute('data-default')){ resetDefault(); return; }
+      activePresetName = el.getAttribute('data-d');
+      document.getElementById('descInput').value = activePresetName;
+      document.querySelectorAll('.preset').forEach(p=>p.classList.remove('active'));
+      el.classList.add('active');
+      suppressZodiacPalette = true;   // 用户手动选择预设 → 优先于星座配色
+      doGenerate();
+    });
+  });
+  document.querySelectorAll('.zodiac').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      activeZodiac=el.getAttribute('data-z');
+      document.querySelectorAll('.zodiac').forEach(z=>z.classList.remove('active'));
+      el.classList.add('active');
+      doGenerate();
+    });
+  });
+  document.querySelectorAll('#ftypes .type').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      manualType=true;                              // 手动锁定类型，向量不再覆盖
+      setType(Number(el.getAttribute('data-ft')));   // 仅切换形态，不重新播种，画面平滑过渡
+      ctx.fillStyle=`rgb(${bgRGB[0]},${bgRGB[1]},${bgRGB[2]})`; ctx.fillRect(0,0,W,H);
+    });
+  });
+  function setBadge(txt){
+    const b=document.getElementById('badge');
+    const fromVec = loadVec()? '基于你的 8 维审美向量' : '随机向量（未完成测评）';
+    let mode='';
+    if(activeZodiac) mode=' · 星座形态：'+activeZodiac;
+    mode+=' · 流场形态：'+FLOW_TYPES[activeType];
+    if(activePresetName && !txt) mode+=' · 风格：'+activePresetName.replace(/湍流|涡流|涌动|风暴/,'');
+    else if(txt) mode+=' · 描述：'+txt;
+    b.innerHTML = '🌊 <b>'+fromVec+'</b>'+mode+
+      '<br>seed 0x'+seed.toString(16).padStart(8,'0')+' · '+COUNT+' 粒子 · 风格预设改色 · 星座/形态改变结构。';
+  }
+
+  // 恢复到首次打开该页面时的初始外观
+  function resetDefault(){
+    buildCenters();
+    manualType=false;
+    const vv = loadVec();
+    if(vv){ buildFromVector(vv); activePresetName=null; }
+    else { buildFromVector(null); activePresetName='紫粉梦幻湍流'; setPalette(STYLE_PAL[activePresetName]); }
+    activeZodiac = null;
+    document.querySelectorAll('.preset').forEach(p=>p.classList.remove('active'));
+    const defChip = document.querySelector('#presets .preset[data-default]');
+    if(defChip) defChip.classList.add('active');
+    document.querySelectorAll('.zodiac').forEach(z=>z.classList.remove('active'));
+    clampParams(); syncSlidersFromParams(); renderPalette();
+    buildParticles();
+    ctx.fillStyle=`rgb(${bgRGB[0]},${bgRGB[1]},${bgRGB[2]})`; ctx.fillRect(0,0,W,H);
+    setBadge('');
+  }
+
+  // 初始化
+  const v=loadVec();
+  buildCenters();
+  if(v){ buildFromVector(v); }
+  else { buildFromVector(null); activePresetName='紫粉梦幻湍流'; setPalette(STYLE_PAL[activePresetName]);
+         const def=document.querySelector('.preset[data-d="'+activePresetName+'"]'); if(def) def.classList.add('active'); }
+  buildParticles();
+  startLoop();
+  setBadge('');
+
+  const quizBanner=document.getElementById('quizBanner');
+  document.getElementById('quizClose').addEventListener('click', ()=>quizBanner.classList.add('hidden'));
+  if(!v) quizBanner.classList.remove('hidden');
+})();
+</script>
+</body>
+</html>

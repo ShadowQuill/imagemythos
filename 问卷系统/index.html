@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI 审美系统 · 问卷筛选与访谈系统</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#ffffff; --ink:#1f2330; --muted:#6b7280;
+    --line:#e5e7eb; --brand:#5b54e6; --brand-soft:#eeeefc;
+    --ok:#0f9d6b; --warn:#d97706; --bad:#dc2626; --chip:#eef2ff;
+    --field:#ffffff;
+  }
+  [data-theme="dark"]{
+    color-scheme:dark;
+    --bg:#0e1118; --card:#171b27; --ink:#e7e9ef; --muted:#8b93a7;
+    --line:#262c3a; --brand:#7c8cff; --brand-soft:#1d2138;
+    --ok:#3fbf8f; --warn:#e8a33d; --bad:#ef6a6a; --chip:#1c2236;
+    --field:#0e1118;
+  }
+  .theme-btn{margin-left:auto;background:var(--card);border:1px solid var(--line);color:var(--ink);
+    border-radius:8px;padding:6px 12px;cursor:pointer;font-size:12.5px;transition:.18s}
+  .theme-btn:hover{border-color:var(--brand)}
+  .home-btn{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);color:var(--ink);
+    text-decoration:none;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:12.5px;transition:.18s;white-space:nowrap}
+  .home-btn:hover{border-color:var(--brand);color:var(--brand)}
+  [data-theme="dark"] .home-btn{background:#171b27;color:var(--ink)}
+  [data-theme="dark"] .home-btn:hover{color:var(--brand)}
+  [data-theme="dark"] header,[data-theme="dark"] nav{background:#171b27}
+  [data-theme="dark"] nav button{background:#171b27;color:var(--ink)}
+  [data-theme="dark"] nav button.active{background:var(--brand);color:#fff}
+  [data-theme="dark"] input,[data-theme="dark"] select,[data-theme="dark"] textarea{background:var(--field);color:var(--ink);border-color:var(--line)}
+  [data-theme="dark"] th{background:#1c2130}
+  [data-theme="dark"] .btn.ghost{background:#171b27;color:var(--ink)}
+  [data-theme="dark"] .btn.danger{background:#171b27;color:var(--bad)}
+  [data-theme="dark"] .stat .box{background:#171b27}
+  [data-theme="dark"] .helpbox{background:#12151f;border-color:var(--line)}
+  [data-theme="dark"] .result{background:#12151f}
+  [data-theme="dark"] .storage-bar{background:#12151f}
+  [data-theme="dark"] .radio-group label{background:var(--brand-soft)}
+  [data-theme="dark"] code{background:#222838}
+  [data-theme="dark"] .banner{background:var(--brand-soft);border-color:#2a2f4a;color:#c9c3ff}
+  [data-theme="dark"] .restore-warn{background:#2a2410;border-color:#5a4a10;color:#f0d28a}
+  [data-theme="dark"] .empty{border-color:var(--line)}
+  [data-theme="dark"] .modal-mask{background:rgba(0,0,0,.6)}
+  [data-theme="dark"] .modal-box{background:#171b27;color:var(--ink)}
+  [data-theme="dark"] .modal-box .opt{background:#171b27;border-color:var(--line)}
+  [data-theme="dark"] .modal-box .opt:hover{background:#1f2433}
+  [data-theme="dark"] .modal-box .cancel{background:#262c3a;color:var(--ink)}
+  [data-theme="dark"] .tag.A{background:#1c2a4d;color:#9db4ff}
+  [data-theme="dark"] .tag.B{background:#3a2a16;color:#ffc98a}
+  [data-theme="dark"] .tag.orange{background:#3a2a16;color:#ffc98a}
+  [data-theme="dark"] .tag.ok{background:#123527;color:#7fe3b5}
+  [data-theme="dark"] .tag.bad{background:#3a1718;color:#ff9b9b}
+  [data-theme="dark"] .tag.warn{background:#332a10;color:#f0d28a}
+  [data-theme="dark"] .tag.manual{background:#2a2f3a;color:#aab2c4}
+  [data-theme="dark"] .tag.待人工{background:#2a2f3a;color:#aab2c4}
+  [data-theme="dark"] #holyZoom{background:rgba(0,0,0,.9)}
+  [data-theme="dark"] .toast{background:#e7e9ef;color:#1f2330}
+  [data-theme="dark"] .matrix input{background:#0e1118}
+  [data-theme="dark"] .catSel{background:#0e1118}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.55}
+  header{padding:16px 22px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px}
+  header h1{font-size:16px;margin:0;font-weight:700}
+  header .sub{color:var(--muted);font-size:12px}
+  nav{display:flex;gap:6px;padding:10px 18px;background:#fff;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  nav button{border:1px solid var(--line);background:#fff;color:var(--ink);padding:7px 14px;border-radius:8px;cursor:pointer;font-size:13px}
+  nav button.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+  main{padding:18px 22px;max-width:1080px;margin:0 auto}
+  .view{display:none}
+  .view.active{display:block}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:16px}
+  h2{font-size:15px;margin:0 0 12px}
+  h3{font-size:13.5px;margin:18px 0 8px;color:var(--ink)}
+  p.lead{color:var(--muted);margin:0 0 14px}
+  label{display:block;font-weight:600;margin:12px 0 6px}
+  .req{color:var(--bad)}
+  input[type=text],input[type=email],input[type=number],select,textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:var(--field)}
+  textarea{resize:vertical;min-height:60px}
+  .row{display:flex;gap:14px;flex-wrap:wrap}
+  .row>div{flex:1;min-width:200px}
+  .checks label{font-weight:400;display:flex;align-items:center;gap:8px;margin:6px 0}
+  .checks input{width:auto}
+  .radio-group{display:flex;gap:10px;flex-wrap:wrap}
+  .radio-group label{font-weight:400;display:flex;align-items:center;gap:6px;margin:0;background:var(--brand-soft);padding:8px 12px;border-radius:8px;border:1px solid transparent;cursor:pointer}
+  .radio-group input{width:auto}
+  .btn{display:inline-block;border:none;background:var(--brand);color:#fff;padding:10px 18px;border-radius:9px;cursor:pointer;font-size:14px;font-weight:600}
+  .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .btn.sm{padding:5px 10px;font-size:12px;border-radius:7px}
+  .btn.danger{background:#fff;color:var(--bad);border:1px solid var(--bad)}
+  .muted{color:var(--muted);font-size:12px}
+  .helpbox{margin-top:12px;background:#fbfcff;border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:13px;line-height:1.6}
+  .helpbox ul{margin:6px 0 2px;padding-left:20px}
+  .helpbox li{margin:3px 0}
+  .delbox{margin-top:14px;border-top:1px dashed var(--line);padding-top:12px}
+  .restore-warn{margin:8px 0 2px;padding:8px 12px;border:1px solid #f0c674;background:#fff8e6;border-radius:9px;font-size:12.5px;color:#7a5b00;line-height:1.55}
+  .restore-warn b{color:#9a3b00}
+  .warn-inline{color:#a16207;font-weight:600}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:#fafafa;font-weight:600}
+  .tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11.5px;font-weight:600}
+  .tag.A{background:#e0ecff;color:#1d4ed8}
+  .tag.B{background:#ffe9d6;color:#b45309}
+  .tag.orange{background:#ffe9d6;color:#b45309}
+  .tag.ok{background:#d7f5e6;color:#0f9d6b}
+  .tag.bad{background:#fde2e2;color:#dc2626}
+  .tag.warn{background:#fff2cc;color:#a16207}
+  .tag.manual{background:#eee;color:#555}
+  .empty{color:var(--muted);padding:26px;text-align:center;border:1px dashed var(--line);border-radius:10px}
+  .banner{background:var(--brand-soft);border:1px solid #d9d8f7;color:#3a34a8;padding:12px 14px;border-radius:10px;margin-bottom:14px;font-size:13px}
+  .result{margin-top:14px;padding:14px;border-radius:10px;border:1px solid var(--line);background:var(--brand-soft)}
+  .matrix td,.matrix th{text-align:center;padding:6px}
+  .matrix td:first-child,.matrix th:first-child{text-align:left;white-space:nowrap}
+  .matrix input{margin:0}
+  .mini{font-size:12px}
+  .storage-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 12px;padding:8px 12px;border:1px dashed var(--line);border-radius:10px;background:var(--brand-soft)}
+  .dot{width:10px;height:10px;border-radius:50%;background:#cbd5e1;display:inline-block;flex:0 0 auto}
+  .dot.ok{background:#22c55e}
+  .dot.err{background:#ef4444}
+  .catSel{font-size:12px;padding:3px 6px;border-radius:7px;border:1px solid var(--line);background:#fff;color:var(--text);max-width:88px}
+  .btn{transition:transform .09s ease, box-shadow .18s ease, background-color .18s ease}
+  .btn:active{transform:scale(.93)}
+  .tag.待人工{background:#eee;color:#555}
+  #poolTable.flash{animation:tblFlash .45s ease}
+  @keyframes tblFlash{0%{box-shadow:0 0 0 0 rgba(79,70,229,.5)}100%{box-shadow:0 0 0 16px rgba(79,70,229,0)}}
+  tr.rowflash>td{animation:rowFlash .7s ease}
+  @keyframes rowFlash{0%{background:#eef0ff}100%{background:transparent}}
+  /* 模块8.3 神圣理念图像 */
+  .m-type-cell{display:flex;align-items:center;gap:8px}
+  .holy-thumb{width:46px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--line);cursor:pointer;transition:.15s;flex:none}
+  .holy-thumb:hover{transform:scale(1.05);box-shadow:0 2px 8px rgba(0,0,0,.18)}
+  .matrix input.word{width:88px;box-sizing:border-box}
+  .holy-draft{font-size:11px;color:#9a5b00;background:#fff7e6;border:1px solid #ffe0a3;border-radius:6px;padding:4px 9px;margin:6px 0 10px;display:inline-block}
+  #holyZoom{position:fixed;inset:0;background:rgba(18,18,28,.84);display:none;align-items:center;justify-content:center;z-index:9999;cursor:zoom-out}
+  #holyZoom.show{display:flex}
+  #holyZoom img{max-width:82vw;max-height:86vh;border-radius:10px;box-shadow:0 8px 44px rgba(0,0,0,.55)}
+  #holyZoom .cap{position:absolute;bottom:18px;left:0;right:0;text-align:center;color:#fff;font-size:13px;text-shadow:0 1px 4px #000;padding:0 16px}
+  a.dl{color:var(--brand);text-decoration:underline;cursor:pointer}
+  .stat{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .stat .box{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-width:120px}
+  .stat .box b{display:block;font-size:20px}
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#1f2330;color:#fff;padding:10px 18px;border-radius:10px;opacity:0;transition:.25s;pointer-events:none;font-size:13px}
+  .toast.show{opacity:1}
+  .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px}
+  .filters>div{display:flex;flex-direction:column;gap:4px}
+  details{margin-top:10px}
+  summary{cursor:pointer;color:var(--brand);font-weight:600}
+  code{background:#f3f4f6;padding:1px 5px;border-radius:4px}
+/* 通用导出格式选择弹窗 */
+  .modal-mask{position:fixed;inset:0;background:rgba(15,18,28,.5);display:flex;align-items:center;justify-content:center;z-index:50}
+  .modal-box{background:#fff;border-radius:14px;padding:20px 22px;width:min(380px,92vw);box-shadow:0 18px 50px rgba(0,0,0,.25)}
+  .modal-box .mt{font-size:15px;font-weight:700;margin-bottom:14px;color:var(--ink)}
+  .modal-box .opts{display:flex;flex-direction:column;gap:10px}
+  .modal-box .opt{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:2px;border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:#fff;cursor:pointer;transition:.15s}
+  .modal-box .opt:hover{border-color:var(--brand);background:#f7f9ff}
+  .modal-box .opt b{font-size:14px}
+  .modal-box .opt span{font-size:12px;color:#6b7280}
+  .modal-box .cancel{margin-top:14px;width:100%;border:none;background:#f1f2f4;color:#374151;border-radius:8px;padding:9px;cursor:pointer;font-size:13px}
+  .modal-box .cancel:hover{background:#e5e7eb}
+</style>
+</head>
+<body>
+<header>
+  <a class="home-btn" href="https://imagemythos.fun/">← 返回首页</a>
+  <h1>AI 审美系统 · 问卷筛选与访谈系统</h1>
+  <span class="sub">模块1 筛选问卷 · 模块2 受访者库 · 模块3 访谈执行 · 数据导入/导出</span>
+  <button id="themeToggle" class="theme-btn" title="切换深浅主题">🌙 切暗色</button>
+</header>
+<nav>
+  <button data-tab="screen" class="active">① 筛选问卷</button>
+  <button data-tab="pool">② 受访者库</button>
+  <button data-tab="interview">③ 访谈执行</button>
+  <button data-tab="data">④ 数据导入/导出</button>
+  <button data-tab="pretest">⑤ 信效度预测试</button>
+</nav>
+<main>
+
+<!-- ============ 模块1：筛选问卷 ============ -->
+<section class="view active" id="view-screen">
+  <div class="card">
+    <h2>模块 1 · 招募筛选问卷</h2>
+    <p class="lead">依据《用户访谈执行包》Part 1。提交后系统自动执行：① 剔除无效样本（信息不全/逻辑矛盾）② 依预设条件过滤目标受访者（A类自我探索型 / B类表达需求型）。</p>
+    <div class="banner">说明：当前为空白系统，尚无真实应答数据。请手动录入真实受访者，或在「④ 数据导入/导出」批量导入 CSV。本系统<strong>不会虚构任何样本</strong>。</div>
+
+    <form id="screenForm">
+      <h3>1. 你做过以下哪些测试 / 探索？（多选）</h3>
+      <div class="checks" id="qTests">
+        <label><input type="checkbox" name="tests" value="MBTI"> MBTI / 16型</label>
+        <label><input type="checkbox" name="tests" value="九型"> 九型人格（含副型/本能变体）</label>
+        <label><input type="checkbox" name="tests" value="荣格原型"> 荣格原型 / 心理类型</label>
+        <label><input type="checkbox" name="tests" value="占星"> 占星（本命盘/太阳星座等）</label>
+        <label><input type="checkbox" name="tests" value="塔罗"> 塔罗</label>
+        <label><input type="checkbox" name="tests" value="都没做过"> 都没做过</label>
+      </div>
+
+      <h3>2. 你对"能量 / 原型 / 气质 / 神性 / 状态"这类词的使用习惯？</h3>
+      <div class="radio-group" id="qWord">
+        <label><input type="radio" name="word" value="经常用"> 经常用，是我描述自己的常用语</label>
+        <label><input type="radio" name="word" value="偶尔用"> 听说过，偶尔用</label>
+        <label><input type="radio" name="word" value="不习惯"> 不习惯用，我更用具体词（如"干净""野""安静"）</label>
+      </div>
+
+      <h3>3. 在家居 / 摄影 / 穿搭 / 内容创作上，你是否有强烈的个人审美偏好？</h3>
+      <div class="radio-group" id="qPref">
+        <label><input type="radio" name="pref" value="有很在意"> 有，且很在意</label>
+        <label><input type="radio" name="pref" value="有一点"> 有一点</label>
+        <label><input type="radio" name="pref" value="没什么"> 没什么特别偏好</label>
+      </div>
+
+      <h3>4. 用 3 个词形容你"最舒服的"空间或照片氛围 <span class="muted">(开放填空，预采术语)</span></h3>
+      <input type="text" name="aestheticWords" placeholder="例：安静、暖、有光" />
+
+      <h3>5. 是否愿意参加一次约 50 分钟的深度访谈？<span class="req">*</span></h3>
+      <div class="radio-group" id="qWill">
+        <label><input type="radio" name="willing" value="愿意"> 愿意（需留联系方式）</label>
+        <label><input type="radio" name="willing" value="看情况"> 看情况</label>
+      </div>
+
+      <h3>6. 基本信息</h3>
+      <div class="row">
+        <div><label>年龄区间<span class="req">*</span></label>
+          <select name="age"><option value="">请选择</option><option>18-24</option><option>25-30</option><option>31-40</option><option>41-50</option><option>50+</option></select></div>
+        <div><label>城市</label><input type="text" name="city" placeholder="例：上海" /></div>
+        <div><label>身份<span class="req">*</span></label>
+          <select name="role"><option value="">请选择</option><option>学生</option><option>职场</option><option>创作者</option><option>自由职业</option><option>其他</option></select></div>
+      </div>
+
+      <h3>7. 联系方式 <span class="muted">(若第5题选"愿意")</span></h3>
+      <input type="text" name="contact" placeholder="微信 / 手机 / 邮箱" />
+
+      <h3>8. 你从哪看到这次招募？</h3>
+      <input type="text" name="channel" placeholder="例：朋友圈 / 社群 / 私信" />
+
+      <h3>9. 是否同意录音用于内部复盘？</h3>
+      <div class="radio-group" id="qRec">
+        <label><input type="radio" name="record" value="是"> 是</label>
+        <label><input type="radio" name="record" value="否"> 否（仅笔记）</label>
+      </div>
+
+      <div style="margin-top:18px;display:flex;gap:10px">
+        <button type="submit" class="btn">提交并筛选</button>
+        <button type="reset" class="btn ghost">清空</button>
+      </div>
+    </form>
+
+    <div id="screenResult"></div>
+  </div>
+</section>
+
+<!-- ============ 模块2：受访者库 ============ -->
+<section class="view" id="view-pool">
+  <div class="card">
+    <h2>模块 2 · 受访者库（筛选结果）</h2>
+    <p class="lead">自动标注：入选类别（A/B）、入选状态、剔除原因。目标配额：A类 3–5 人、B类 3–5 人。</p>
+    <div class="stat" id="statBox"></div>
+    <div class="filters">
+      <div><label class="mini">按类别</label><select id="fCat" onchange="renderPool()"><option value="">全部</option><option value="A">A类</option><option value="B">B类</option><option value="待人工">待人工</option></select></div>
+      <div><label class="mini">按状态</label><select id="fStatus" onchange="renderPool()"><option value="">全部</option><option value="已入选">已入选</option><option value="未确认">未确认（待人工）</option><option value="待剔除">待剔除</option><option value="取消入选">取消入选</option><option value="无效样本">无效样本</option></select></div>
+      <div><label class="mini">&nbsp;</label><button class="btn sm" onclick="renderPool();flashTable()">刷新</button></div>
+    </div>
+    <div id="poolTable"></div>
+  </div>
+</section>
+
+<!-- ============ 模块3：访谈执行 ============ -->
+<section class="view" id="view-interview">
+  <div class="card">
+    <h2>模块 3 · 访谈执行采集（对应执行包 Part 4）</h2>
+    <p class="lead">选择一名受访者，按模块 1–8 录入；模块 8 为神圣理念间接测量（反应质地矩阵）。数据保存在本地，可随时回看。</p>
+    <div class="row">
+      <div style="max-width:340px">
+        <label>选择受访者</label>
+        <select id="ivResp"></select>
+      </div>
+      <div style="max-width:200px">
+        <label>&nbsp;</label>
+        <button class="btn sm" onclick="loadInterview()">载入 / 新建</button>
+      </div>
+    </div>
+    <div id="ivBody" style="margin-top:14px"></div>
+  </div>
+</section>
+
+<!-- ============ 模块4：数据 ============ -->
+<section class="view" id="view-data">
+  <div class="card">
+    <h2>模块 4 · 数据导入 / 导出</h2>
+    <p class="lead">真实数据可从问卷星 / 腾讯问卷导出 CSV 后在此导入，系统会对每一行自动跑筛选逻辑；也可导入/导出 JSON 与 CSV 两种格式。所有导入导出均支持 <b>JSON / CSV</b> 双模式。</p>
+    <h3>导入（支持 CSV / JSON）</h3>
+    <p class="mini">CSV 列名需包含：<code>tests,word,pref,aestheticWords,willing,age,role,contact,city,channel,record</code>（<code>tests</code> 多值用 <code>|</code> 分隔）；JSON 为受访者记录数组，导入时按 id 合并到当前库（不覆盖其他人）。</p>
+    <div class="row" style="gap:14px;flex-wrap:wrap;align-items:center">
+      <input type="file" id="csvFile" accept=".csv,text/csv" style="display:none" onchange="importCSV()" />
+      <button class="btn sm" onclick="document.getElementById('csvFile').click()">导入 CSV</button>
+      <input type="file" id="jsonFile4" accept="application/json,.json" style="display:none" onchange="dbAppendRoute(this)" />
+      <button class="btn sm ghost" onclick="document.getElementById('jsonFile4').click()">导入 JSON</button>
+      <a class="dl" style="margin-left:4px" onclick="downloadTemplate()">下载 CSV 模板</a>
+    </div>
+
+    <h3>导出（支持 CSV / JSON）</h3>
+    <div class="row" style="gap:14px;flex-wrap:wrap;align-items:center">
+      <button class="btn sm" onclick="exportCSV()">导出 CSV</button>
+      <button class="btn sm ghost" onclick="exportJSON()">导出 JSON</button>
+    </div>
+
+    <h3>筛选逻辑自测（内置样例，不写入数据库）</h3>
+    <p class="mini">用 3 条标注为「测试样例」的输入验证剔除与 A/B 过滤是否正确。</p>
+    <button class="btn sm" onclick="runSelfTest()">运行自测</button>
+      <div id="selftest"></div>
+  </div>
+
+  <div class="card">
+    <h2>数据备份与回收（防 localStorage 丢失）</h2>
+    <p class="mini">所有操作均支持 <b>JSON / CSV</b> 两种格式：JSON 为完整结构（含访谈/作答），CSV 为扁平表格（可用 Excel 打开，且含 interview_json / pretests_json 列，导回不丢数据）。</p>
+    <div id="storageBar" class="storage-bar">
+      <span id="syncDot" class="dot"></span>
+      <span id="storageMode" class="mini">存储模式：检测中…</span>
+      <span id="authState" class="mini" style="margin-left:auto"></span>
+      <button class="btn sm ghost" id="authBtn" onclick="toggleAdminAuth()" style="display:none">管理员登录</button>
+      <button class="btn sm ghost" id="forgotBtn" onclick="forgotPassword()" style="display:none">忘记密码</button>
+    </div>
+    <div class="row" style="max-width:440px;margin-bottom:10px">
+      <div style="flex:1"><label>选择受访者（用于「导出单受访者完整数据」）</label><select id="pkgResp"></select></div>
+    </div>
+    <div class="row" style="gap:10px;flex-wrap:wrap">
+      <button class="btn sm" onclick="openExportChoice('db')">整库备份导出</button>
+      <button class="btn sm" onclick="document.getElementById('dbImport').click()">整库恢复导入（JSON/CSV）</button>
+      <input type="file" id="dbImport" accept="application/json,.json,.csv,text/csv" style="display:none" onchange="dbRestoreRoute(this)">
+      <button class="btn sm" onclick="document.getElementById('dbAppend').click()">追加导入（不覆盖，JSON/CSV）</button>
+      <input type="file" id="dbAppend" accept="application/json,.json,.csv,text/csv" style="display:none" onchange="dbAppendRoute(this)">
+      <button class="btn sm ghost" onclick="openExportChoice('pkg')">导出单受访者完整数据</button>
+      <button class="btn sm ghost" onclick="openExportChoice('engine')">导出单受访者引擎自评数据</button>
+      <button class="btn sm ghost" onclick="document.getElementById('respImport').click()">导入单受访者数据（JSON/CSV）</button>
+      <input type="file" id="respImport" accept="application/json,.json,.csv,text/csv" multiple style="display:none" onchange="pkgImportRoute(this)">
+      <button class="btn sm danger" onclick="dedupDB()">一键去重（清理重复导入）</button>
+    </div>
+    <p class="restore-warn">⚠ <b>整库恢复导入</b>会<b>全量覆盖</b>当前数据：在「后端数据库」模式下会清掉后端整库，其他设备/协作者的新数据将一并丢失。<b>跨设备协作请优先用「追加导入」。</b></p>
+    <div class="helpbox">
+      <b>各按钮用途：</b>
+      <ul>
+        <li><b>整库备份导出</b>：把当前浏览器里的<b>全部受访者</b>（档案＋所有作答）打包下载，作为保险。<u>每次采集后必点</u>。JSON 保留完整结构；CSV 为扁平档案（含筛选结论与编码）。</li>
+        <li><b>整库恢复导入</b>：选一个备份文件（JSON 或 CSV），<b>整体替换</b>当前数据。用于换电脑／清缓存后还原。<span class="warn-inline">⚠ 在「后端数据库」模式下，它会<b>全量覆盖后端整库</b>，其他设备/协作者的新数据会被一并清掉。</span> <b>跨设备协作时优先用「追加导入」</b>，避免误删他人数据。</li>
+        <li><b>追加导入（不覆盖）</b>：把文件里的受访者<b>追加合并</b>到当前库（同 id 覆盖、新 id 新增，<u>不动已有其他人</u>）。适合把新生成／外部数据并入当前库。</li>
+        <li><b>导出单受访者完整数据</b>：先在本卡片上方「选择受访者」里选一个人，把<b>这一个人</b>的<b>全部记录</b>导出成文件（JSON 完整／CSV 扁平）。内容为：<b>档案 ＋ wave 作答与评分 ＋ 访谈编码</b>，用于分散自测回收后合并到本机。</li>
+        <li><b>导入单受访者数据</b>：把他人发来的单人文件<b>合并</b>进当前库（按 id 匹配，同人记录追加／覆盖，<u>不覆盖别人</u>）。</li>
+        <li><b>导出单受访者引擎自评数据</b>：先选受访者，导出其在「模块3 神性测评引擎」填写的<b>引擎自评作答（answers）＋权重</b>。该文件格式兼容「引擎 demo 页」的「导入自评数据」按钮，可直接回填自评页重算／生成（即梦出图前的本地映射也基于此作答）。</li>
+        <li><b>一键去重</b>：按录入内容扫描，合并"重复导入"产生的副本，<b>带测试记录的版本优先保留</b>。</li>
+      </ul>
+    </div>
+    <div class="delbox">
+      <h3>删除数据</h3>
+      <p class="mini">数据分两类：<b>库数据</b>＝受访者档案（录入信息／筛选结论＋<b>访谈记录</b>）；<b>作答数据</b>＝其在预测试中的 wave 作答与评分。两者可分别删除。注意：上方「导出单受访者完整数据」导出的是<b>含访谈在内的整条记录</b>，与这里仅指 wave 的"作答数据"不同。</p>
+      <div class="row" style="max-width:440px">
+        <div style="flex:1"><label>选择受访者</label><select id="delResp"></select></div>
+      </div>
+      <div class="row" style="gap:10px;margin-top:8px;flex-wrap:wrap">
+        <button class="btn sm danger" onclick="deleteRespondent()">删除整个受访者（库数据＋作答）</button>
+        <button class="btn sm" onclick="clearRespondentTests()">仅清除作答数据（保留档案）</button>
+      </div>
+      <div class="row" style="gap:10px;margin-top:8px;flex-wrap:wrap">
+        <button class="btn sm danger" style="background:#7a1f2b;border-color:#b13a4a" onclick="clearAllDB()">⚠ 一键清空整库（删除全部受访者，不可恢复）</button>
+      </div>
+    </div>
+    <p class="mini">每次采集后务必「整库备份导出」存到本地/云盘；单受访者数据用于分散自测回收后合并到本机。若因重复导入导致人数翻倍，点「一键去重」按录入内容去重，带测试记录的版本会优先保留。</p>
+  </div>
+</section>
+
+<!-- ============ 模块5：信效度预测试(G2) ============ -->
+<section class="view" id="view-pretest">
+  <div class="card">
+    <h2>模块 5 · 信效度预测试（G2）</h2>
+    <p class="lead">对应《题库信效度预测试方案》G2 门：重测信度（间隔 ≥14 天）、内部一致性（每型 Cronbach α）、向量重测 Pearson r。作答存于本地，可导出 responses / coding / reliability。</p>
+    <div class="row" style="max-width:540px">
+      <div style="flex:1"><label>选择受访者</label><select id="ptResp"></select></div>
+      <div><label>&nbsp;</label><button class="btn sm" onclick="loadPretest()">载入</button></div>
+    </div>
+    <div id="ptBody"></div>
+  </div>
+  <div class="card">
+    <h2>G2 统计面板</h2>
+    <div class="banner" id="ptStatBanner"></div>
+    <div id="ptStats"></div>
+    <div style="margin-top:14px;display:flex;gap:10px">
+      <button class="btn sm" onclick="renderReliability()">刷新统计</button>
+      <button class="btn sm ghost" onclick="exportReliabilityJSON()">导出 JSON</button>
+      <button class="btn sm ghost" onclick="exportReliabilityReport()">导出报告(MD)</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>重测排期看板（≥14 天）</h2>
+    <div id="ptSchedule"></div>
+  </div>
+</section>
+
+</main>
+<div class="toast" id="toast"></div>
+<div id="holyZoom" onclick="closeHoly()"><img src="" alt=""><div class="cap"></div></div>
+
+<script src="./data.js"></script>
+<script src="./engine.js"></script>
+
+<script>
+/* ===================== 数据层（支持后端数据库 / 本地缓存） ===================== */
+const KEY='ai_aesthetic_respondents_v1';
+let DB = [];
+let MODE='local';          // 'api' = 后端数据库(跨设备共享) | 'local' = 浏览器 localStorage
+let API_BASE='';           // '/api' 或完整 URL
+let DB_READY=false;
+let BACKEND_OK=false;      // 后端可达（与 MODE 分开：鉴权失败会把 MODE 降级成 local，但登录入口仍要在）
+
+/* 研究数据属管理员专属：/api/db 现在要求 Bearer token（与审美引擎共用 aae_token） */
+const TOKEN_KEY='aae_token';
+function authToken(){ try{ return localStorage.getItem(TOKEN_KEY)||''; }catch(e){ return ''; } }
+function authHeaders(){ const t=authToken(); return t?{'Authorization':'Bearer '+t}:{}; }
+// 401/403 统一转成人能看懂的话，顺带把 UI 切回未登录态
+function authFail(status){
+  if(status===401||status===403){
+    updateAuthUI(false);
+    return new Error(status===401?'未登录：研究数据需管理员登录后访问':'当前账号不是管理员，无权访问研究数据');
+  }
+  return null;
+}
+async function apiGetDB(){
+  const res=await fetch(API_BASE+'/db',{cache:'no-store',headers:authHeaders()});
+  if(!res.ok){ const e=authFail(res.status); if(e) throw e; throw new Error('读取后端失败('+res.status+')'); }
+  return await res.json();
+}
+async function apiPutDB(arr){
+  const res=await fetch(API_BASE+'/db',{method:'PUT',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:JSON.stringify(arr)});
+  if(!res.ok){ const e=authFail(res.status); if(e) throw e; throw new Error('写入后端失败('+res.status+')'); }
+  return res.json();
+}
+// 拿当前登录身份（顺便验证 token 还有效）
+async function fetchMe(){
+  try{
+    const t=authToken(); if(!t) return null;
+    const r=await fetch(API_BASE+'/auth/me',{cache:'no-store',headers:authHeaders()});
+    if(!r.ok) return null;
+    const j=await r.json();
+    return (j&&j.user)||j||null;
+  }catch(e){ return null; }
+}
+let ADMIN_USER=null;
+function updateAuthUI(isAdmin,email){
+  const st=document.getElementById('authState'), btn=document.getElementById('authBtn'), fbtn=document.getElementById('forgotBtn');
+  if(!st||!btn) return;
+  btn.style.display=BACKEND_OK?'inline-block':'none';           // 登录/退出都显示
+  if(fbtn) fbtn.style.display=(BACKEND_OK&&!isAdmin)?'inline-block':'none'; // 忘记密码仅未登录时显示
+  if(isAdmin){ ADMIN_USER=email||ADMIN_USER; st.innerHTML='已登录：<b style="color:#15803d">'+(email||ADMIN_USER||'管理员')+'</b>'; btn.textContent='退出登录'; }
+  else { ADMIN_USER=null; st.innerHTML='<b style="color:#b45309">未登录</b>（研究数据只读失败时请登录）'; btn.textContent='管理员登录'; }
+}
+async function toggleAdminAuth(){
+  if(ADMIN_USER){
+    try{ await fetch(API_BASE+'/auth/logout',{method:'POST',headers:authHeaders()}); }catch(e){}
+    try{ localStorage.removeItem(TOKEN_KEY); }catch(e){}
+    updateAuthUI(false); toast('已退出登录'); return;
+  }
+  const email=prompt('管理员邮箱'); if(!email) return;
+  const pw=prompt('密码'); if(!pw) return;
+  try{
+    const r=await fetch(API_BASE+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email.trim(),password:pw})});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok){ toast(j.error||('登录失败('+r.status+')')); return; }
+    if(!(j.user&&j.user.is_admin)){ toast('该账号不是管理员'); return; }
+    try{ localStorage.setItem(TOKEN_KEY,j.token); }catch(e){}
+    updateAuthUI(true,j.user.email);
+    toast('登录成功，正在加载研究数据…');
+    DB_READY=false; await bootstrap();
+  }catch(e){ toast('登录失败：'+(e&&e.message||e)); }
+}
+// 忘记密码（自助重置）：优先走邮箱验证码；若未配置 SMTP 则回退到离线重置码（backend/.env 的 RESET_CODE）。
+async function forgotPassword(){
+  const email=prompt('请输入注册邮箱'); if(!email) return;
+  try{
+    const reqR=await fetch(API_BASE+'/auth/forgot-request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email.trim()})});
+    const reqJ=await reqR.json().catch(()=>({}));
+    if(!reqR.ok){
+      if(reqR.status===501){
+        // 未配置邮件：回退到重置码方式
+        const code=prompt('邮件服务未配置，请输入重置码（在 backend/.env 的 RESET_CODE）'); if(!code) return;
+        const npw=prompt('请输入新密码（至少 6 位）'); if(!npw) return;
+        if(npw.length<6){ toast('新密码至少 6 位'); return; }
+        const r=await fetch(API_BASE+'/auth/forgot-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email.trim(),resetCode:code,newPassword:npw})});
+        const j=await r.json().catch(()=>({}));
+        if(!r.ok){ toast(j.error||('重置失败('+r.status+')')); return; }
+        toast('密码已重置 ✓ 请用新密码登录'); return;
+      }
+      toast(reqJ.error||('发送验证码失败('+reqR.status+')')); return;
+    }
+    const code=prompt('验证码已发送至邮箱（含垃圾邮件箱），请输入 6 位验证码'); if(!code) return;
+    const npw=prompt('请输入新密码（至少 6 位）'); if(!npw) return;
+    if(npw.length<6){ toast('新密码至少 6 位'); return; }
+    const r=await fetch(API_BASE+'/auth/forgot-verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email.trim(),code:code.trim(),newPassword:npw})});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok){ toast(j.error||('重置失败('+r.status+')')); return; }
+    toast('密码已重置 ✓ 请用新密码登录');
+  }catch(e){ toast('重置失败：'+(e&&e.message||e)); }
+}
+// 探测可用的后端：当前架构由后端同源托管页面，直接探测同源 /api 即可
+async function detectBackend(){
+  const probe=(base)=> new Promise(res=>{
+    const to=setTimeout(()=>res(null),1500);
+    fetch(base+'/health',{cache:'no-store'})
+      .then(r=>{ clearTimeout(to); res(r.ok?base:null); })
+      .catch(()=>{ clearTimeout(to); res(null); });
+  });
+  const same=await probe('/api');
+  if(same){ API_BASE='/api'; MODE='api'; BACKEND_OK=true; return true; }
+  MODE='local'; API_BASE=''; BACKEND_OK=false; return false;
+}
+// 页面启动：加载数据（后端优先，失败回退本地缓存），再渲染
+async function bootstrap(){
+  if(DB_READY) return;
+  const ok=await detectBackend();
+  if(ok){
+    const me=await fetchMe();
+    updateAuthUI(!!(me&&me.is_admin), me&&me.email);
+    try{ DB=await apiGetDB(); }
+    catch(e){
+      // 未登录/非管理员时不要静默假装成功：退回本地缓存并说清原因，
+      // 否则用户会以为后端里没数据，一保存就把空库覆盖上去。
+      DB=JSON.parse(localStorage.getItem(KEY)||'[]');
+      MODE='local';
+      toast((e&&e.message)||'后端读取失败');
+    }
+  } else {
+    DB=JSON.parse(localStorage.getItem(KEY)||'[]');
+    updateAuthUI(false);
+  }
+  DB_READY=true;
+  try{ migrateDB(); }catch(e){}
+  try{ renderDelList(); }catch(e){}
+  try{ renderPool(); }catch(e){}
+  try{ renderPretestList(); }catch(e){}
+  try{ renderReliability(); }catch(e){}
+  try{ renderSchedule(); }catch(e){}
+  updateStorageUI();
+}
+const TESTS=['MBTI','九型','荣格原型','占星','塔罗'];
+const REACT=['想靠近','排斥','说不清但移不开眼','想靠近却抵触','无感'];
+const TYPES=[
+  [1,'1 · 神圣完美'],[2,'2 · 神圣意志·爱'],[3,'3 · 神圣法则·希望'],
+  [4,'4 · 神圣本源'],[5,'5 · 神圣全知'],[6,'6 · 神圣信念'],[7,'7 · 神圣计划·智慧'],
+  [8,'8 · 神圣真相·正义'],[9,'9 · 神圣合一']
+];
+// 神圣理念图像：相对路径（问卷位于 问卷系统/，图像位于 神圣理念图像/）
+const HOLY_IMG_DIRS=['./神圣理念图像/','神圣理念图像/','../神圣理念图像/','/神圣理念图像/'];
+const holyImg=(n,idx)=>HOLY_IMG_DIRS[(idx||0)]+'holy_idea_'+n+'.png';
+function holyImgErr(img,n){
+  let i=(parseInt(img.dataset.hi,10)||0)+1;
+  if(i>=HOLY_IMG_DIRS.length){ img.alt='⚠图缺失'; img.style.width='auto'; img.style.height='auto'; return; }
+  img.dataset.hi=i; img.src=holyImg(n,i);
+}
+
+/* ===================== 核心：筛选 + 过滤 ===================== */
+function classify(f){
+  // f: {tests:[], word, pref, willing, age, role, contact, ...}
+  // 返回 {valid, status, category, admitOrigin, reason}
+  // 状态语义：A/B→已入选(绿)；待人工→未确认(灰)；未确认参与→待剔除(红)；取消预约→取消入选(红)
+  if(!f.willing){ return {valid:false, status:'无效样本', category:null, admitOrigin:null, reason:'第5题未作答（是否愿意访谈）'} }
+  if(!f.age || !f.role){ return {valid:false, status:'无效样本', category:null, admitOrigin:null, reason:'基本信息（年龄/身份）缺失'} }
+  if(f.willing==='愿意' && !f.contact){ return {valid:false, status:'无效样本', category:null, admitOrigin:null, reason:'选"愿意"但未留联系方式'} }
+  const didNone = f.tests.includes('都没做过');
+  const specific = f.tests.filter(t=>t!=='都没做过');
+  if(didNone && specific.length>0){ return {valid:false, status:'无效样本', category:null, admitOrigin:null, reason:'逻辑矛盾：同时选"都没做过"与具体测试'} }
+  if(f.willing!=='愿意'){ return {valid:true, status:'待剔除', category:null, admitOrigin:'空', reason:'未确认参加访谈（"看情况"），待剔除'} }
+  const c = specific.length;
+  let category, catReason, origin;
+  if(c>=2 && !didNone){ category='A'; origin='A'; catReason=`做过 ${c} 类测试且无"都没做过" → 自我探索型`; }
+  else if(didNone || (c===1 && f.pref==='有很在意') || (c===0 && f.pref==='有很在意')){ category='B'; origin='B'; catReason = didNone? '选"都没做过" → 表达需求型' : '测试少但审美偏好强烈 → 表达需求型'; }
+  else { category='待人工'; origin='待人工'; catReason = `测试 ${c} 类、偏好"${f.pref}"，边界样本 → 需人工复核`; }
+  return {valid:true, status:(category==='A'||category==='B')?'已入选':'未确认', category, admitOrigin:origin, reason:catReason};
+}
+// 旧版本数据缺少 admitOrigin，按当前 classify 重新归类；已带 admitOrigin 的新数据（含人工改类/标记预约结果）保持不变
+function migrateDB(){
+  if(!Array.isArray(DB)||!DB.length) return;
+  let changed=false;
+  DB=DB.map(r=>{
+    if(r && r.screening && r.screening.admitOrigin) return r;
+    try{ const s=classify(r); changed=true; return Object.assign({},r,{screening:s}); }
+    catch(e){ return r; }
+  });
+  if(changed) save();
+}
+
+/* ===================== 模块1 提交 ===================== */
+document.getElementById('screenForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const fd=new FormData(e.target);
+  const f={
+    tests:fd.getAll('tests'), word:fd.get('word')||'', pref:fd.get('pref')||'',
+    aestheticWords:fd.get('aestheticWords')||'', willing:fd.get('willing')||'',
+    age:fd.get('age')||'', role:fd.get('role')||'', contact:fd.get('contact')||'',
+    city:fd.get('city')||'', channel:fd.get('channel')||'', record:fd.get('record')||''
+  };
+  const r=classify(f);
+  const rec={
+    id:'R'+(DB.length+1).toString().padStart(3,'0')+'-'+Date.now().toString().slice(-4),
+    createdAt:new Date().toISOString().slice(0,10),
+    ...f, screening:r, interview:null
+  };
+  DB.push(rec); save();
+  const cls = r.valid ? (r.category==='待人工'?'warn':'ok') : 'bad';
+  const tag = r.category ? `<span class="tag ${r.category}">${r.category}类</span> ` : '';
+  document.getElementById('screenResult').innerHTML =
+    `<div class="result"><b>筛选结果 · ${rec.id}</b><br>
+     状态：<span class="tag ${cls}">${r.status}</span> ${tag}<br>
+     判定：${r.reason}<br>
+     <span class="muted">已存入本地库，可在「② 受访者库」查看。</span></div>`;
+  e.target.reset();
+  toast('已提交并筛选：'+r.status+(r.category?(' · '+r.category+'类'):''));
+});
+
+/* ===================== 模块2 渲染 ===================== */
+function renderPool(highlightId){
+  migrateDB(); // 每次显示前先确保旧数据已迁移到新状态模型，避免手动刷新
+  const fCat=document.getElementById('fCat').value, fStatus=document.getElementById('fStatus').value;
+  let list=DB.filter(r=>(!fCat||r.screening.category===fCat)&&(!fStatus||r.screening.status===fStatus));
+  // 统计
+  const A=DB.filter(r=>(r.screening.category==='A')&&r.screening.status==='已入选').length;
+  const B=DB.filter(r=>(r.screening.category==='B')&&r.screening.status==='已入选').length;
+  const inv=DB.filter(r=>r.screening.status==='无效样本').length;
+  const man=DB.filter(r=>r.screening.category==='待人工').length;
+  const unconf=DB.filter(r=>r.screening.status==='待剔除').length;
+  const canc=DB.filter(r=>r.screening.status==='取消入选').length;
+  document.getElementById('statBox').innerHTML=
+    `<div class="box"><b>${A}</b>已入选 A类</div><div class="box"><b>${B}</b>已入选 B类</div>
+     <div class="box"><b>${man}</b>待人工(未确认)</div><div class="box"><b>${canc}</b>取消入选</div><div class="box"><b>${unconf}</b>待剔除</div><div class="box"><b>${inv}</b>无效样本</div>`;
+  if(list.length===0){ document.getElementById('poolTable').innerHTML='<div class="empty">暂无符合条件的记录。</div>'; return; }
+  let html='<table><tr><th>ID</th><th>类别</th><th>状态</th><th>判定依据</th><th>年龄/身份</th><th>联系方式</th><th>人工改类</th><th>操作</th></tr>';
+  list.forEach(r=>{
+    const s=r.screening||{status:'无效样本',category:null,admitOrigin:null,reason:'数据缺失'};
+    const origin = getOrigin(s);
+    let stext=s.status, sCls='warn';
+    if(s.status==='无效样本'){ stext='无效样本'; sCls='bad'; }
+    else if(s.status==='取消入选'){ stext='取消入选'; sCls='bad'; }
+    else if(s.status==='已入选'){ stext='已入选'; sCls = (origin==='A'||origin==='B')?'ok':(origin==='待人工'?'warn':'orange'); }
+    else if(s.status==='未确认'){ stext='未确认'; sCls='warn'; }
+    else if(s.status==='待剔除'){ stext='待剔除'; sCls='bad'; }
+    const cTag = s.category?`<span class="tag ${s.category}">${s.category}</span>`:'';
+    const showManual = origin==='待人工';
+    const catSel = `<select class="catSel" onchange="setCategory('${r.id}', this.value)">
+      ${showManual?`<option value="待人工" ${s.category==='待人工'?'selected':''}>待人工</option>`:''}
+      <option value="A" ${s.category==='A'?'selected':''}>A类</option>
+      <option value="B" ${s.category==='B'?'selected':''}>B类</option>
+    </select>`;
+    const apBtn = (s.status==='已入选')
+      ? `<button class="btn sm ghost" onclick="markStatus('${r.id}')">取消预约</button>`
+      : `<button class="btn sm" onclick="markStatus('${r.id}')">标记预约</button>`;
+    const sTag = `<span class="tag ${sCls}">${stext}</span>`;
+    html+=`<tr data-id="${r.id}"><td>${r.id}</td><td>${cTag||'-'}</td><td>${sTag}</td>
+      <td class="mini">${s.reason}</td><td class="mini">${r.age||'-'}/${r.role||'-'}</td>
+      <td class="mini">${r.contact||'-'}</td>
+      <td>${catSel}</td>
+      <td>${apBtn}<button class="btn sm ghost" onclick="delRec('${r.id}')">删</button></td></tr>`;
+  });
+  html+='</table>';
+  const tbl=document.getElementById('poolTable');
+  tbl.innerHTML=html;
+  if(highlightId){ const row=tbl.querySelector('tr[data-id="'+highlightId+'"]'); if(row) row.classList.add('rowflash'); }
+}
+function getOrigin(s){
+  if(s.admitOrigin) return s.admitOrigin;
+  if(s.category==='A'||s.category==='B') return s.category;
+  if(s.category==='待人工') return '待人工';
+  return '空';
+}
+function markStatus(id){
+  const r=DB.find(x=>x.id===id); if(!r||!r.screening)return;
+  const s=r.screening;
+  const origin=getOrigin(s);
+  if(s.status==='已入选'){
+    if(origin==='A'||origin==='B'){ s.status='取消入选'; toast('已取消入选'); }
+    else if(origin==='待人工'){ s.status='未确认'; s.category='待人工'; toast('已恢复：待人工（未确认）'); }
+    else { s.status='待剔除'; s.category=null; toast('已恢复：待剔除'); }
+  } else {
+    s.status='已入选';
+    if(!s.admitOrigin) s.admitOrigin=origin;
+    toast('已入选');
+  }
+  save(); renderPool(id);
+}
+function flashTable(){ const t=document.getElementById('poolTable'); if(!t)return; t.classList.remove('flash'); void t.offsetWidth; t.classList.add('flash'); }
+function delRec(id){ DB=DB.filter(x=>x.id!==id); save(); renderPool(); toast('已删除'); }
+function setCategory(id, cat){
+  const r=DB.find(x=>x.id===id); if(!r)return;
+  if(!r.screening) r.screening={valid:true,status:'未确认',category:'待人工',admitOrigin:'待人工',reason:''};
+  const s=r.screening;
+  const origin=getOrigin(s);
+  if(cat==='待人工'){
+    // 选定「待人工」→ 干净还原为初始态（黄色·未确认），杜绝与 A/B 来源混出的矛盾显示
+    s.category='待人工'; s.status='未确认'; s.admitOrigin='待人工';
+    s.reason='边界样本 → 需人工复核';
+  } else {
+    // 改判为 A/B：只换类别标签，保留入选来源（颜色按来源恒定：待人工→黄、空→橙、A/B→绿）
+    s.category=cat;
+    if(s.status!=='已入选') s.status='已入选';
+    const suffix = origin==='待人工' ? '（待人工来源·黄色）' : (origin==='空' ? '（空来源·橙色）' : '');
+    s.reason='人工复核改判 → '+cat+'类'+suffix;
+  }
+  save(); renderPool(); toast('已改判分类：'+cat+'类');
+}
+
+/* ===================== 模块3 访谈执行 ===================== */
+function refreshRespSelect(){
+  const sel=document.getElementById('ivResp');
+  sel.innerHTML='<option value="">— 选择 —</option>'+DB.map(r=>`<option value="${r.id}">${r.id} · ${r.screening.category||'?'}${r.screening.status==='已入选'?'':'('+r.screening.status+')'}</option>`).join('');
+}
+function loadInterview(){
+  const id=document.getElementById('ivResp').value; if(!id){toast('请先选择受访者');return;}
+  const r=DB.find(x=>x.id===id); if(!r)return;
+  const iv=r.interview||{};
+  let h='';
+  h+='<div class="row"><div><label>基本信息（自动带入）</label><textarea readonly>'+`年龄:${r.age} 城市:${r.city} 身份:${r.role} 渠道:${r.channel} 录音:${r.record}`+'</textarea></div></div>';
+  h+='<h3>模块1–5 关键记录</h3>';
+  h+='<div class="row"><div><label>自发言美学术语</label><textarea data-k="aestheticWords">'+(iv.aestheticWords||r.aestheticWords||'')+'</textarea></div>';
+  h+='<div><label>能量选择偏好（被告知/自选）</label><input data-k="energyPref" value="'+(iv.energyPref||'')+'"></div></div>';
+  h+='<div class="row"><div><label>测试接受度 / 4套反应</label><input data-k="testAccept" value="'+(iv.testAccept||'')+'"></div>';
+  h+='<div><label>主+点缀接受度</label><input data-k="accentAccept" value="'+(iv.accentAccept||'')+'"></div></div>';
+  h+='<div class="row"><div><label>产出偏好（空间/影像）</label><input data-k="outputPref" value="'+(iv.outputPref||'')+'"></div>';
+  h+='<div><label>审美积累形态</label><input data-k="accumForm" value="'+(iv.accumForm||'')+'"></div></div>';
+  h+='<h3>模块 8 · 神圣理念体验探测（间接测量）</h3>';
+  h+='<div><label>8.1 情境题卡点描述</label><textarea data-k="scenarioNote">'+(iv.scenarioNote||'')+'</textarea></div>';
+  h+='<div class="row" style="margin-top:10px"><div><label>8.2 投射题：最像我的型</label><select data-k="projLike">'+typeOpts(iv.projLike)+'</select></div>';
+  h+='<div><label>8.2 投射题：最抵触的型</label><select data-k="projReject">'+typeOpts(iv.projReject)+'</select></div></div>';
+  // 反应质地矩阵
+  h+='<h3>8.3 图像选择题 · 反应质地矩阵</h3>';
+  h+='<div class="holy-draft">✅ 图像已通过 G1 盲审（v1.2-internal）。点击缩略图可放大给被试看，逐型记录其反应质地与自由气质词。</div>';
+  h+='<table class="matrix"><tr><th>神圣理念（型）</th><th>气质词（被试原词）</th>'+REACT.map(x=>`<th>${x}</th>`).join('')+'</tr>';
+  TYPES.forEach(([n,name])=>{
+    const word=(iv.matrixWords&&iv.matrixWords[n])||'';
+    h+=`<tr><td class="m-type-cell"><img class="holy-thumb" src="${holyImg(n,0)}" alt="${name}" title="点击放大" loading="lazy" decoding="async" onclick="zoomHoly(${n})" onerror="holyImgErr(this,${n})"><span>${name}</span></td>`;
+    h+=`<td><input class="word" data-mw="${n}" value="${word.replace(/"/g,'&quot;')}" placeholder="原词"></td>`;
+    REACT.forEach(rc=>{
+      const checked = (iv.matrix&&iv.matrix[n]===rc)?'checked':'';
+      h+=`<td><input type="radio" name="m${n}" value="${rc}" ${checked}></td>`;
+    });
+    h+='</tr>';
+  });
+  h+='</table>';
+  h+='<div class="row" style="margin-top:10px"><div><label>编码员初步判断 主型</label><select data-k="codeMain">'+typeOpts(iv.codeMain)+'</select></div>';
+  h+='<div><label>编码员初步判断 次型</label><select data-k="codeSub">'+typeOpts(iv.codeSub)+'</select></div></div>';
+  h+='<h3>收尾</h3>';
+  h+='<div class="row"><div><label>疲劳/顾虑</label><textarea data-k="concern">'+(iv.concern||'')+'</textarea></div>';
+  h+='<div><label>付费意愿（是/否 + 付费点）</label><input data-k="pay" value="'+(iv.pay||'')+'"></div></div>';
+  h+='<h3>模块 · 神性测评引擎（自动跑分）</h3>';
+  h+='<div class="note">嵌入 4 框架自研测评。作答后点击「计算并保存评分」，自动产出各框架主+次结果与 8 轴美学向量，并存回该受访者访谈记录。</div>';
+  h+='<div id="enginePanel"></div>';
+  h+='<div style="margin-top:14px"><button class="btn" onclick="saveInterview(\''+id+'\')">保存访谈记录</button></div>';
+  document.getElementById('ivBody').innerHTML=h;
+  renderEnginePanel(id);
+}
+function typeOpts(sel){ let o='<option value="">—</option>'; TYPES.forEach(([n,name])=>{o+=`<option value="${n}" ${sel==n?'selected':''}>${name}</option>`;}); return o; }
+function zoomHoly(n){
+  const z=document.getElementById('holyZoom');
+  const img=z.querySelector('img');
+  img.dataset.hi=0; img.onerror=()=>holyImgErr(img,n); img.src=holyImg(n,0);
+  z.querySelector('.cap').textContent='类型 '+n+' · 神圣理念意象（已通过 G1 盲审 v1.2）';
+  z.classList.add('show');
+}
+function closeHoly(){ document.getElementById('holyZoom').classList.remove('show'); }
+function saveInterview(id){
+  const r=DB.find(x=>x.id===id); if(!r)return;
+  const iv=Object.assign({}, r.interview||{});
+  document.querySelectorAll('#ivBody [data-k]').forEach(el=>{ iv[el.dataset.k]=el.value; });
+  const matrix={};
+  TYPES.forEach(([n])=>{ const chk=document.querySelector(`input[name="m${n}"]:checked`); if(chk) matrix[n]=chk.value; });
+  iv.matrix=matrix;
+  const matrixWords={};
+  TYPES.forEach(([n])=>{ const el=document.querySelector(`input[data-mw="${n}"]`); if(el&&el.value.trim()) matrixWords[n]=el.value.trim(); });
+  iv.matrixWords=matrixWords;
+  r.interview=iv; save(); toast('访谈记录已保存');
+}
+
+/* ===================== 模块4 导入/导出 ===================== */
+function importCSV(){
+  const file=document.getElementById('csvFile').files[0]; if(!file){toast('请先选择 CSV');return;}
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const list=csvToRecords(reader.result);
+      if(!list.length){ toast('CSV 无数据行'); return; }
+      let added=0, updated=0, invalid=0;
+      list.forEach(r=>{
+        const i=DB.findIndex(x=>x.id===r.id);
+        if(i>=0){ DB[i]=r; updated++; } else { DB.push(r); added++; }
+        if(!r.screening || !r.screening.valid || r.screening.status!=='已入选') invalid++;
+      });
+      save(); refreshAllViews();
+      toast('CSV 导入完成：新增 '+added+' 条，更新 '+updated+' 条，其中 '+invalid+' 条未入选/无效');
+    }catch(e){ toast('导入失败：'+e.message); }
+  };
+  reader.readAsText(file,'utf-8');
+}
+function downloadTemplate(){
+  const head='tests,word,pref,aestheticWords,willing,age,role,contact,city,channel,record\n';
+  const ex='MBTI|九型,经常用,有很在意,安静|暖|有光,愿意,25-30,创作者,wx123,朋友圈,是\n';
+  const blob=new Blob([head+ex],{type:'text/csv'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='筛选问卷模板.csv'; a.click();
+}
+function exportCSV(){
+  if(DB.length===0){toast('库为空');return;}
+  dlFile(dbToCsv(DB),'text/csv;charset=utf-8','受访者库_'+dateStr()+'.csv');
+  toast('已导出 CSV（'+DB.length+' 条）');
+}
+function exportJSON(){ const blob=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='受访者库.json'; a.click(); }
+
+/* 自测：内置样例，不写入库 */
+function runSelfTest(){
+  const cases=[
+    {name:'样例① 无效-矛盾', f:{tests:['都没做过','MBTI'],word:'经常用',pref:'有很在意',willing:'愿意',age:'25-30',role:'创作者',contact:'wx1'}},
+    {name:'样例② A类', f:{tests:['MBTI','九型','占星'],word:'经常用',pref:'有一点',willing:'愿意',age:'25-30',role:'职场',contact:'wx2'}},
+    {name:'样例③ B类', f:{tests:['都没做过'],word:'不习惯',pref:'有很在意',willing:'愿意',age:'31-40',role:'自由职业',contact:'wx3'}},
+    {name:'样例④ 剔除-未确认', f:{tests:['塔罗'],word:'偶尔用',pref:'没什么',willing:'看情况',age:'18-24',role:'学生'}}
+  ];
+  let h='<table><tr><th>样例</th><th>状态</th><th>类别</th><th>判定依据</th></tr>';
+  cases.forEach(c=>{ const r=classify(c.f); const cls=r.valid?(r.category==='待人工'?'warn':'ok'):'bad'; const tag=r.category?`<span class="tag ${r.category}">${r.category}</span>`:'';
+    h+=`<tr><td>${c.name}</td><td><span class="tag ${cls}">${r.status}</span></td><td>${tag||'-'}</td><td class="mini">${r.reason}</td></tr>`; });
+  h+='</table><p class="mini">以上为内置测试样例，仅用于验证筛选逻辑，未写入数据库。</p>';
+  document.getElementById('selftest').innerHTML=h;
+}
+
+/* ===================== 模块3 · 神性测评引擎（接入引擎/） ===================== */
+const ENGINE_ORDER=['enneagram','jung','astro','bigfive'];
+function engResultLabel(fwId,key){
+  const DATA=window.AESTHETIC_DATA; if(!key) return '—';
+  if(fwId==='astro'){ const m=key.match(/^(sun|moon|asc)_(.+)$/); if(m){ const asp={sun:'太阳',moon:'月亮',asc:'上升'}[m[1]]; const sg=DATA.bank.signs[m[2]]; return asp+' · '+(sg?sg.label:m[2]); } }
+  const fw=DATA.bank.frameworks[fwId]; if(fw.results&&fw.results[key]) return fw.results[key].label; return key;
+}
+function renderEngineResult(res, DATA, Engine){
+  // 防御：导入数据可能缺 explanation，用引擎现算兜底，避免页面显示 "undefined"
+  let explanation = res.explanation;
+  if ((explanation === undefined || explanation === null) && Engine && res.vector && res.results) {
+    try { explanation = Engine.explain(res.vector, res.results, res.selected); } catch (e) { explanation = ''; }
+  }
+  if (!explanation) explanation = '· 暂未生成气质解读，可在上方点「计算并保存评分」刷新。';
+  const pills=res.selected.map(fwId=>{
+    const fw=DATA.bank.frameworks[fwId], rr=res.results[fwId];
+    return `<span class="tag" style="background:var(--chip)">${fw.name}：主 ${engResultLabel(fwId,rr.primary)} ｜ 次 ${engResultLabel(fwId,rr.secondary)}</span>`;
+  }).join(' ');
+  let bars='<div style="margin:10px 0">';
+  DATA.dims.dimensions.forEach(d=>{
+    const v=res.vector[d.id]||0, pct=(v+1)/2*100;
+    bars+=`<div style="display:grid;grid-template-columns:72px 1fr 72px;align-items:center;gap:6px;margin:5px 0;font-size:12px">
+      <div style="text-align:right;color:var(--ok)">${d.negLabel}</div>
+      <div style="position:relative;height:12px;background:var(--line);border-radius:6px;overflow:hidden">
+        <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:#bbb"></div>
+        <div style="position:absolute;top:0;bottom:0;background:linear-gradient(90deg,#1f8a70,#c0392b);left:${v<0?pct+'%':'50%'};width:${Math.abs(v)*50}%"></div>
+      </div>
+      <div style="color:var(--bad)">${d.posLabel}</div></div>`;
+  });
+  bars+='</div>';
+  return `<div class="result"><b>① 各框架主 / 次结果</b><div style="margin:6px 0">${pills}</div>
+    <b>② 统一美学向量（8 轴，[-1,1]）</b>${bars}
+    <b>③ 为什么这样彰显你的气质</b><div class="exp" style="white-space:pre-wrap;background:var(--brand-soft);border:1px solid var(--line);border-radius:8px;padding:10px;font-size:13px;margin-top:4px">${explanation}</div>
+    <div class="mini" style="margin-top:6px">原始向量：${JSON.stringify(res.vector)}</div></div>`;
+}
+function renderEnginePanel(id){
+  const r=DB.find(x=>x.id===id); if(!r)return;
+  const DATA=window.AESTHETIC_DATA, Engine=window.Engine;
+  const host=document.getElementById('enginePanel');
+  if(!DATA||!Engine){ host.innerHTML='<div class="result">⚠️ 引擎未加载（data.js / engine.js 缺失），模块3暂不能跑分。</div>'; return; }
+  const eng=(r.interview&&r.interview.engine)||{answers:{},weights:{},enabled:{}};
+  let ctrls='<div class="row" style="gap:18px;align-items:center;background:var(--brand-soft);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:8px 0;flex-wrap:wrap">';
+  ctrls+='<span class="mini"><b>建模维度（多选）：</b></span>';
+  ENGINE_ORDER.forEach(fwId=>{
+    const fw=DATA.bank.frameworks[fwId];
+    const on=eng.enabled[fwId]!==false, w=eng.weights[fwId]!=null?eng.weights[fwId]:1;
+    ctrls+=`<label class="mini" style="display:flex;align-items:center;gap:4px;margin:0"><input type="checkbox" data-efw="${fwId}" ${on?'checked':''}> ${fw.name}</label>`;
+    ctrls+=`<label class="mini" style="display:flex;align-items:center;gap:4px;margin:0">权重<input type="number" min="0" max="3" step="0.5" value="${w}" style="width:48px" data-ew="${fwId}"></label>`;
+  });
+  // 占星三要素权重（定调/点缀），默认取题库 aspectWeights 或已存值
+  const aw = (eng.aspectWeights && eng.aspectWeights.astro) || (DATA.bank.frameworks.astro.aspectWeights) || { sun: 1, moon: 0.6, asc: 0.4 };
+  ctrls += '<span class="mini" style="width:100%;margin-top:6px"><b>占星三要素权重（定调/点缀）：</b> ';
+  ['sun', 'moon', 'asc'].forEach(a => {
+    const val = (aw[a] != null) ? aw[a] : 1;
+    ctrls += '<label class="mini" style="display:flex;align-items:center;gap:4px;margin:0">' + { sun: '太阳', moon: '月亮', asc: '上升' }[a] + '<input type="number" min="0" max="3" step="0.1" value="' + val + '" style="width:46px" data-easp="' + a + '"></label>';
+  });
+  ctrls += '</span>';
+  ctrls += '<button class="btn sm" id="engCalc" style="margin-left:auto">计算并保存评分</button></div>';
+  let items='';
+  ENGINE_ORDER.forEach(fwId=>{
+    const fw=DATA.bank.frameworks[fwId];
+    items+=`<div class="card" style="margin-bottom:12px;padding:14px 16px"><b>${fw.name}</b>`+(fwId==='enneagram'?' <span class="tag warn">间接测量</span>':'');
+    fw.items.forEach(it=>{
+      const order=shufOrder(it.options.length, id+':'+it.id);
+      const opts=order.map(idx=>{ const ch=eng.answers[it.id]===idx?'checked':''; return `<label style="display:block;font-weight:400;margin:3px 0"><input type="radio" name="e_${it.id}" value="${idx}" ${ch}> ${it.options[idx].text}</label>`; }).join('');
+      items+=`<div style="margin:8px 0"><div class="mini" style="font-weight:600">${it.text}</div>${opts}</div>`;
+    });
+    items+='</div>';
+  });
+  const prev=(eng.result)?renderEngineResult(eng.result,DATA,Engine):'';
+  host.innerHTML=ctrls+'<div id="engItems">'+items+'</div>'+'<div id="engResult">'+prev+'</div>';
+  host.querySelector('#engCalc').addEventListener('click',()=>computeEngine(id,true));
+  // 占星三要素权重 / 框架权重 实时联动：已算过则即时重绘结果（仅刷新显示，不自动保存）
+  if(eng.result){
+    host.querySelectorAll('input[data-easp],input[data-ew]').forEach(el=>{
+      el.addEventListener('input',()=>computeEngine(id,false));
+    });
+  }
+}
+function computeEngine(id, persist){
+  const r=DB.find(x=>x.id===id); if(!r)return;
+  const DATA=window.AESTHETIC_DATA, Engine=window.Engine;
+  if(!DATA||!Engine){ toast('引擎未加载'); return; }
+  const answers={}, weights={}, enabled={}, aspW={astro:{}};
+  ENGINE_ORDER.forEach(fwId=>{
+    enabled[fwId]=document.querySelector(`input[data-efw="${fwId}"]`).checked;
+    weights[fwId]=parseFloat(document.querySelector(`input[data-ew="${fwId}"]`).value)||0;
+  });
+  ['sun','moon','asc'].forEach(a=>{ const el=document.querySelector(`input[data-easp="${a}"]`); if(el) aspW.astro[a]=parseFloat(el.value)||0; });
+  document.querySelectorAll('#engItems input[type=radio]:checked').forEach(el=>{
+    const m=el.name.match(/^e_(.+)$/); if(m) answers[m[1]]=parseInt(el.value,10);
+  });
+  const sel=ENGINE_ORDER.filter(fwId=>enabled[fwId]);
+  if(!sel.length){ toast('请至少选择一个建模框架'); return; }
+  const results={};
+  sel.forEach(fwId=>{ results[fwId]=Engine.scoreFramework(answers,fwId); });
+  const vec=Engine.mapToVector(results,sel,weights,aspW);
+  const exp=Engine.explain(vec,results,sel,weights,aspW);
+  r.interview=r.interview||{};
+  r.interview.engine={answers,weights,enabled,aspectWeights:aspW,result:{results,vector:vec,explanation:exp,selected:sel}};
+  if(persist){ save(); toast('已计算并保存评分'); }
+  document.getElementById('engResult').innerHTML=renderEngineResult(r.interview.engine.result,DATA,Engine);
+}
+
+/* ===================== 工具 ===================== */
+const _shufCache = {};
+function shufOrder(n, key){
+  if(_shufCache[key]) return _shufCache[key];
+  const a = Array.from({length:n}, (_,i)=>i);
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return (_shufCache[key]=a);
+}
+function save(){
+  try{ localStorage.setItem(KEY,JSON.stringify(DB)); }catch(e){}
+  if(MODE==='api'){
+    apiPutDB(DB).then(()=>setSyncDot('ok')).catch(e=>{ setSyncDot('err'); toast('后端保存失败，已写入本地缓存：'+e.message); });
+  }
+}
+function toast(m){ const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800); }
+function switchTab(t){ document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===t)); document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+t)); if(t==='pool')renderPool(); if(t==='interview')refreshRespSelect(); if(t==='data')renderDelList(); if(t==='pretest'){ renderPretestList(); renderDelList(); renderReliability(); renderSchedule(); } }
+document.querySelectorAll('nav button').forEach(b=>b.addEventListener('click',()=>switchTab(b.dataset.tab)));
+
+/* ===================== 模块5 · 信效度预测试 (G2) ===================== */
+const PRETEST_FRAMES=['enneagram','jung','astro','bigfive'];
+const RETEST_DAYS=14;
+function renderPretestList(){
+  const sel=document.getElementById('ptResp'); if(!sel)return;
+  sel.innerHTML='<option value="">— 选择受访者 —</option>'+DB.map(r=>'<option value="'+r.id+'">'+r.id+' · '+(r.screening.category||'?')+(r.screening.status==='已入选'?'':'('+r.screening.status+')')+'</option>').join('');
+}
+function loadPretest(){
+  const id=document.getElementById('ptResp').value;
+  if(!id){ document.getElementById('ptBody').innerHTML='<div class="empty">请先选择受访者。</div>'; return; }
+  const DATA=window.AESTHETIC_DATA;
+  const r=DB.find(x=>x.id===id); r.pretests=r.pretests||[];
+  const w1=r.pretests.find(p=>p.wave===1), w2=r.pretests.find(p=>p.wave===2);
+  const body=document.getElementById('ptBody');
+  let status='';
+  if(!w1){ status='<span class="tag warn">未测</span> 尚未开始。 <button class="btn sm" data-act="start" data-wave="1">开始首次测试（wave1）</button>'; }
+  else if(!w2){
+    const days=Math.floor((Date.now()-new Date(w1.ts).getTime())/86400000);
+    if(days>=RETEST_DAYS){ status='<span class="tag ok">wave1 完成</span> 间隔 '+days+' 天（≥'+RETEST_DAYS+'）→ 可重测。 <button class="btn sm" data-act="start" data-wave="2">开始重测（wave2）</button>'; }
+    else { const left=RETEST_DAYS-days; status='<span class="tag warn">wave1 完成</span> 间隔仅 '+days+' 天，还需 <b>'+left+'</b> 天（≥'+RETEST_DAYS+'）。 <label class="mini" style="margin-left:8px"><input type="checkbox" id="ptForce"> 研究需要，强制重测</label> <button class="btn sm" data-act="startForce" data-wave="2">开始重测（wave2）</button>'; }
+  } else { const days=Math.floor((new Date(w2.ts)-new Date(w1.ts))/86400000); status='<span class="tag ok">已完成两轮</span> 间隔 '+days+' 天。'; }
+  let h='<div class="banner">'+status+'</div>';
+  if(w1||w2){ h+='<div style="margin-top:10px">'; [w1,w2].forEach(w=>{ if(!w)return; h+='<div style="margin:6px 0"><b>wave'+w.wave+'</b> <span class="muted">'+w.ts+'</span><br>'; PRETEST_FRAMES.forEach(fwId=>{ const rr=w.result&&w.result.results[fwId]; h+=DATA.bank.frameworks[fwId].name+'：主 '+engResultLabel(fwId,rr&&rr.primary)+' / 次 '+engResultLabel(fwId,rr&&rr.secondary)+'　'; }); h+='</div>'; }); h+='</div>'; }
+  h+='<div id="ptPanel"></div>';
+  body.innerHTML=h;
+  body.querySelectorAll('button[data-act]').forEach(b=>b.addEventListener('click',()=>{
+    const act=b.dataset.act, wave=parseInt(b.dataset.wave,10);
+    if(act==='start') startPretest(id,wave);
+    else if(act==='startForce'){ if(!document.getElementById('ptForce')||!document.getElementById('ptForce').checked){ toast('请先勾选「研究需要，强制重测」'); return; } startPretest(id,wave); }
+  }));
+}
+function startPretest(id,wave){
+  const r=DB.find(x=>x.id===id); r.pretests=r.pretests||[];
+  const DATA=window.AESTHETIC_DATA, Engine=window.Engine;
+  const host=document.getElementById('ptPanel');
+  if(!DATA||!Engine){ host.innerHTML='<div class="result">⚠️ 引擎未加载。</div>'; return; }
+  const slot=r.pretests.find(p=>p.wave===wave) || {wave,ts:new Date().toISOString(),answers:{},weights:{},enabled:{},aspectWeights:{}};
+  let ctrls='<div class="row" style="gap:18px;align-items:center;background:var(--brand-soft);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:8px 0;flex-wrap:wrap">';
+  ctrls+='<span class="mini"><b>建模维度（多选）：</b></span>';
+  PRETEST_FRAMES.forEach(fwId=>{ const fw=DATA.bank.frameworks[fwId]; const on=slot.enabled[fwId]!==false, w=slot.weights[fwId]!=null?slot.weights[fwId]:1;
+    ctrls+='<label class="mini" style="display:flex;align-items:center;gap:4px;margin:0"><input type="checkbox" data-pefw="'+fwId+'" '+(on?'checked':'')+'> '+fw.name+'</label>';
+    ctrls+='<label class="mini" style="display:flex;align-items:center;gap:4px;margin:0">权重<input type="number" min="0" max="3" step="0.5" value="'+w+'" style="width:48px" data-pew="'+fwId+'"></label>'; });
+  const aw=(slot.aspectWeights&&slot.aspectWeights.astro)||DATA.bank.frameworks.astro.aspectWeights||{sun:1,moon:0.6,asc:0.4};
+  ctrls+='<span class="mini" style="width:100%;margin-top:6px"><b>占星三要素权重：</b> ';
+  ['sun','moon','asc'].forEach(a=>{ const val=(aw[a]!=null)?aw[a]:1; ctrls+='<label class="mini" style="display:flex;align-items:center;gap:4px;margin:0">'+{sun:'太阳',moon:'月亮',asc:'上升'}[a]+'<input type="number" min="0" max="3" step="0.1" value="'+val+'" style="width:46px" data-peasp="'+a+'"></label>'; });
+  ctrls+='</span><button class="btn sm" id="ptCalc" style="margin-left:auto">计算并保存（wave'+wave+'）</button></div>';
+  let items='';
+  PRETEST_FRAMES.forEach(fwId=>{ const fw=DATA.bank.frameworks[fwId];
+    items+='<div class="card" style="margin-bottom:12px;padding:14px 16px"><b>'+fw.name+'</b>'+(fwId==='enneagram'?' <span class="tag warn">间接测量</span>':'');
+    fw.items.forEach(it=>{ const order=shufOrder(it.options.length, id+':'+it.id);
+      const opts=order.map(idx=>{ const ch=slot.answers[it.id]===idx?'checked':''; return '<label style="display:block;font-weight:400;margin:3px 0"><input type="radio" name="p_'+it.id+'" value="'+idx+'" '+ch+'> '+it.options[idx].text+'</label>'; }).join('');
+      items+='<div style="margin:8px 0"><div class="mini" style="font-weight:600">'+it.text+'</div>'+opts+'</div>'; });
+    items+='</div>'; });
+  const prev=(slot.result)?renderEngineResult(slot.result,DATA,Engine):'';
+  host.innerHTML=ctrls+'<div id="ptItems">'+items+'</div>'+'<div id="ptResult">'+prev+'</div>';
+  document.getElementById('ptCalc').addEventListener('click',()=>computePretest(id,wave,true));
+}
+function computePretest(id,wave,persist){
+  const r=DB.find(x=>x.id===id); r.pretests=r.pretests||[];
+  const DATA=window.AESTHETIC_DATA, Engine=window.Engine; if(!DATA||!Engine){toast('引擎未加载');return;}
+  const answers={}, weights={}, enabled={}, aspW={astro:{}};
+  PRETEST_FRAMES.forEach(fwId=>{ enabled[fwId]=document.querySelector('input[data-pefw="'+fwId+'"]').checked; weights[fwId]=parseFloat(document.querySelector('input[data-pew="'+fwId+'"]').value)||0; });
+  ['sun','moon','asc'].forEach(a=>{ const el=document.querySelector('input[data-peasp="'+a+'"]'); if(el) aspW.astro[a]=parseFloat(el.value)||0; });
+  document.querySelectorAll('#ptItems input[type=radio]:checked').forEach(el=>{ const m=el.name.match(/^p_(.+)$/); if(m) answers[m[1]]=parseInt(el.value,10); });
+  const sel=PRETEST_FRAMES.filter(fwId=>enabled[fwId]); if(!sel.length){toast('请至少选择一个建模框架');return;}
+  const results={}; sel.forEach(fwId=>{ results[fwId]=Engine.scoreFramework(answers,fwId); });
+  const vec=Engine.mapToVector(results,sel,weights,aspW); const exp=Engine.explain(vec,results,sel,weights,aspW);
+  let slot=r.pretests.find(p=>p.wave===wave); if(!slot){ slot={wave,ts:new Date().toISOString(),answers:{},weights:{},enabled:{},aspectWeights:{}}; r.pretests.push(slot); }
+  slot.ts=new Date().toISOString(); slot.answers=answers; slot.weights=weights; slot.enabled=enabled; slot.aspectWeights=aspW; slot.result={results,vector:vec,explanation:exp,selected:sel};
+  if(persist){ save(); toast('已保存 wave'+wave+' 评分'); }
+  document.getElementById('ptResult').innerHTML=renderEngineResult(slot.result,DATA,Engine);
+  renderReliability();
+}
+function pearson(xs,ys){ const n=xs.length; if(n<2)return NaN; const mx=xs.reduce((a,b)=>a+b,0)/n, my=ys.reduce((a,b)=>a+b,0)/n; let num=0,dx=0,dy=0; for(let i=0;i<n;i++){ const a=xs[i]-mx,b=ys[i]-my; num+=a*b; dx+=a*a; dy+=b*b; } if(dx===0||dy===0)return NaN; return num/Math.sqrt(dx*dy); }
+function cronbachAlpha(matrix){ const rows=matrix.length; if(rows<2)return NaN; const cols=matrix[0].length; if(cols<2)return NaN; const itemVar=[],total=[]; for(let j=0;j<cols;j++){ let s=0,s2=0; for(let i=0;i<rows;i++){ s+=matrix[i][j]; s2+=matrix[i][j]*matrix[i][j]; } itemVar.push((s2-s*s/rows)/(rows-1)); } for(let i=0;i<rows;i++){ let t=0; for(let j=0;j<cols;j++) t+=matrix[i][j]; total.push(t); } let st=0,st2=0; total.forEach(t=>{ st+=t; st2+=t*t; }); const totalVar=(st2-st*st/rows)/(rows-1); if(totalVar===0)return NaN; const k=cols, sumItemVar=itemVar.reduce((a,b)=>a+b,0); return (k/(k-1))*(1-sumItemVar/totalVar); }
+function renderReliability(){
+  const DATA=window.AESTHETIC_DATA;
+  const all=DB.filter(r=>(r.pretests||[]).length);
+  const w1done=all.filter(r=>r.pretests.some(p=>p.wave===1&&p.result));
+  const both=all.filter(r=>{ const w=r.pretests; return w.some(p=>p.wave===1&&p.result)&&w.some(p=>p.wave===2&&p.result); });
+  const n1=w1done.length, n2=both.length;
+  let pAg=0,pN=0,sAg=0,sN=0;
+  both.forEach(r=>{ const a=r.pretests.find(p=>p.wave===1).result.results, b=r.pretests.find(p=>p.wave===2).result.results;
+    PRETEST_FRAMES.forEach(fwId=>{ const x=a[fwId],y=b[fwId]; if(x&&y){ pN++; if(x.primary===y.primary)pAg++; if(x.secondary&&y.secondary){ sN++; if(x.secondary===y.secondary)sAg++; } } }); });
+  const pRate=pN?Math.round(pAg/pN*100):0, sRate=sN?Math.round(sAg/sN*100):0;
+  const vecR={}; DATA.dims.dimensions.forEach(d=>{ const xs=both.map(r=>r.pretests.find(p=>p.wave===1).result.vector[d.id]); const ys=both.map(r=>r.pretests.find(p=>p.wave===2).result.vector[d.id]); vecR[d.id]=both.length>=2?pearson(xs,ys):NaN; });
+  const alpha={}, alphaN={};
+  ['enneagram','jung'].forEach(fwId=>{ const fw=DATA.bank.frameworks[fwId]; alpha[fwId]={}; alphaN[fwId]={};
+    Object.keys(fw.results||{}).forEach(type=>{ const items=fw.items.filter(it=>it.options.some(o=>(o.signals[type]||0)!==0)); const matrix=w1done.map(r=>{ const w=r.pretests.find(p=>p.wave===1); return items.map(it=>{ const idx=w.answers[it.id]; if(idx==null)return 0; const sig=it.options[idx].signals; return sig[type]||0; }); });
+      if(matrix.length>=2 && items.length>=2){ alpha[fwId][type]=cronbachAlpha(matrix); alphaN[fwId][type]=matrix.length; } else { alpha[fwId][type]=NaN; alphaN[fwId][type]=matrix.length; } }); });
+  document.getElementById('ptStatBanner').innerHTML='完成 wave1：<b>'+n1+'</b> 人 ｜ 完成两轮：<b>'+n2+'</b> 人 ｜ 目标 n≈15–20（重测）';
+  let h='';
+  h+='<h3>重测一致率（主/次结果，n='+n2+'）</h3><div class="stat"><div class="box"><b>'+pRate+'%</b>主结果一致</div><div class="box"><b>'+sRate+'%</b>次结果一致</div><div class="box"><b>'+(pRate>=80?'达标':'未达80%')+'</b>门槛≥80%</div></div>';
+  h+='<h3>向量重测 Pearson r（每美学维度，n='+n2+'）</h3><table><tr><th>维度</th><th>r</th></tr>';
+  DATA.dims.dimensions.forEach(d=>{ const r=vecR[d.id]; h+='<tr><td>'+d.negLabel+' ↔ '+d.posLabel+'</td><td>'+(isNaN(r)?'—':r.toFixed(3))+'</td></tr>'; });
+  const avgR=Object.values(vecR).filter(v=>!isNaN(v)); const mAvg=avgR.length?avgR.reduce((a,b)=>a+b,0)/avgR.length:NaN;
+  h+='<tr><td><b>平均</b></td><td><b>'+(isNaN(mAvg)?'—':mAvg.toFixed(3))+'</b></td></tr></table><p class="mini">向量重测 r 门槛 ≥0.7（小样本放宽，须报告）。</p>';
+  h+='<h3>内部一致性 Cronbach α（wave1，n='+n1+'）</h3>';
+  ['enneagram','jung'].forEach(fwId=>{ const fw=DATA.bank.frameworks[fwId]; h+='<div style="margin:8px 0"><b>'+fw.name+'</b></div><table><tr><th>类型</th><th>α</th><th>n</th></tr>';
+    Object.keys(alpha[fwId]).forEach(type=>{ const a=alpha[fwId][type]; h+='<tr><td>'+type+'</td><td>'+(isNaN(a)?'—':a.toFixed(3))+'</td><td>'+alphaN[fwId][type]+'</td></tr>'; }); h+='</table>'; });
+  h+='<p class="mini">α 门槛 ≥0.6（题项少时天然偏低，配合重测看）。</p>';
+  document.getElementById('ptStats').innerHTML=h;
+  window._reliability={ n1,n2,pRate,sRate,vecR,alpha,alphaN, generatedAt:new Date().toISOString() };
+}
+function dateStr(){ const d=new Date(); const p=n=>(n<10?'0'+n:''+n); return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate()); }
+function exportReliabilityJSON(){
+  const rep=window._reliability||{};
+  const responses=DB.filter(r=>(r.pretests||[]).length).map(r=>({id:r.id, pretests:r.pretests}));
+  const coding=DB.filter(r=>(r.pretests||[]).length).map(r=>({id:r.id, auto:r.pretests.map(p=>({wave:p.wave, primary:Object.fromEntries(PRETEST_FRAMES.map(f=>[f,p.result&&p.result.results[f]&&p.result.results[f].primary])), secondary:Object.fromEntries(PRETEST_FRAMES.map(f=>[f,p.result&&p.result.results[f]&&p.result.results[f].secondary]))})), manual:(r.interview&&r.interview.codeMain)?{codeMain:r.interview.codeMain,codeSub:r.interview.codeSub}:null }));
+  const out={ meta:{tool:'G2 信效度预测试', schema:{responses:'原始作答', coding:'自动结果+人工编码', reliability:'统计指标'}, generatedAt:new Date().toISOString()}, reliability:rep, responses, coding };
+  const blob=new Blob([JSON.stringify(out,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='信效度预测试_导出_'+dateStr()+'.json'; a.click();
+}
+function exportReliabilityReport(){
+  const DATA=window.AESTHETIC_DATA; const rep=window._reliability; if(!rep){toast('请先刷新统计');return;}
+  let md='# G2 信效度预测试报告\n\n生成时间：'+rep.generatedAt+'\n\n';
+  md+='## 样本\n- 完成 wave1：'+rep.n1+' 人\n- 完成两轮：'+rep.n2+' 人（目标 n≈15–20）\n\n';
+  md+='## 重测一致率\n- 主结果一致率：'+rep.pRate+'%（门槛≥80%）\n- 次结果一致率：'+rep.sRate+'%\n\n';
+  md+='## 向量重测 Pearson r\n'; DATA.dims.dimensions.forEach(d=>{ const r=rep.vecR[d.id]; md+='- '+d.negLabel+' ↔ '+d.posLabel+'：'+(isNaN(r)?'—':r.toFixed(3))+'\n'; });
+  const avgR=Object.values(rep.vecR).filter(v=>!isNaN(v)); const mAvg=avgR.length?avgR.reduce((a,b)=>a+b,0)/avgR.length:NaN;
+  md+='- 平均：'+(isNaN(mAvg)?'—':mAvg.toFixed(3))+'（门槛≥0.7）\n\n';
+  md+='## 内部一致性 Cronbach α（wave1）\n'; ['enneagram','jung'].forEach(fwId=>{ const fw=DATA.bank.frameworks[fwId]; md+='### '+fw.name+'\n| 类型 | α | n |\n|---|---|---|\n'; Object.keys(rep.alpha[fwId]).forEach(type=>{ const a=rep.alpha[fwId][type],n=rep.alphaN[fwId][type]; md+='| '+type+' | '+(isNaN(a)?'—':a.toFixed(3))+' | '+n+' |\n'; }); md+='\n'; });
+  md+='（α 门槛 ≥0.6，题项少时天然偏低，配合重测看）\n';
+  const blob=new Blob([md],{type:'text/markdown'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='信效度预测试_报告_'+dateStr()+'.md'; a.click();
+}
+
+/* ===================== 数据备份 / 回收 ===================== */
+function exportDB(){
+  const blob=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='G2_整库备份_'+dateStr()+'.json'; a.click();
+  toast('已导出整库备份（'+DB.length+' 条受访者）');
+}
+function importDB(input){
+  const file=input.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const data=JSON.parse(reader.result);
+      if(!Array.isArray(data)){ toast('文件格式错误：应为受访者数组'); return; }
+      if(!confirm('将用导入的 '+data.length+' 条受访者覆盖当前本地数据，确定？建议先「整库备份导出」当前数据。')){ input.value=''; return; }
+      DB=data; migrateDB(); save();
+      renderPool(); renderPretestList(); renderDelList(); renderReliability(); renderSchedule();
+      toast('已恢复 '+data.length+' 条受访者');
+    }catch(e){ toast('导入失败：'+e.message); }
+    input.value='';
+  };
+  reader.readAsText(file);
+}
+function importDBAppend(input){
+  const file=input.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const data=JSON.parse(reader.result);
+      if(!Array.isArray(data)){ toast('文件格式错误：应为受访者数组'); input.value=''; return; }
+      const exist=new Set(DB.map(r=>r.id));
+      let added=0, updated=0;
+      data.forEach(r=>{
+        if(!r||!r.id){ return; }
+        const i=DB.findIndex(x=>x.id===r.id);
+        if(i>=0){ DB[i]=r; updated++; } else { DB.push(r); added++; }
+      });
+      migrateDB(); save();
+      renderPool(); renderPretestList(); renderDelList(); renderReliability(); renderSchedule();
+      toast('已追加导入：新增 '+added+' 条，覆盖更新 '+updated+' 条（现有其他人数据未动）');
+    }catch(e){ toast('导入失败：'+e.message); }
+    input.value='';
+  };
+  reader.readAsText(file);
+}
+function dedupDB(){
+  if(!DB.length){ toast('当前没有数据'); return; }
+  const norm=v=>{ if(Array.isArray(v)) return v.map(x=>String(x).trim()).filter(Boolean).sort().join('|'); return (v==null?'':String(v)).trim(); };
+  const sig=r=>[ norm(r.tests), norm(r.word), norm(r.pref), norm(r.aestheticWords),
+    norm(r.willing), norm(r.age), norm(r.role), norm(r.contact), norm(r.city), norm(r.channel), norm(r.record) ].join('\u0001');
+  const groups=new Map();
+  DB.forEach(r=>{ const s=sig(r); if(!groups.has(s)) groups.set(s,[]); groups.get(s).push(r); });
+  const before=DB.length; const kept=[]; let removed=0; let preservedTest=0;
+  groups.forEach(items=>{
+    if(items.length===1){ kept.push(items[0]); return; }
+    items.sort((a,b)=>((b.pretests||[]).length-(a.pretests||[]).length)); // 带测试记录的优先保留
+    const winner=items[0]; kept.push(winner); removed+=items.length-1;
+    if((winner.pretests||[]).length>0) preservedTest++;
+  });
+  if(removed===0){ toast('未检测到重复受访者，无需去重'); return; }
+  if(!confirm('检测到 '+removed+' 条重复（录入内容相同、被重复导入）。将保留 '+kept.length+' 条唯一记录，其中带测试记录的版本优先保留。确定去重？建议先「整库备份导出」。')){ return; }
+  DB=kept; save();
+  renderPool(); renderPretestList(); renderDelList(); renderReliability(); renderSchedule();
+  toast('已去重：移除 '+removed+' 条重复，保留 '+kept.length+' 条（'+preservedTest+' 组保留了带测试的版本）');
+}
+document.addEventListener('DOMContentLoaded', bootstrap);
+window.addEventListener('load', bootstrap); // 双保险：确保页面就绪后一定加载数据（bootstrap 自带幂等保护）
+
+/* ===================== 存储模式 / 后端配置 UI ===================== */
+function setSyncDot(s){ const d=document.getElementById('syncDot'); if(!d)return; d.className='dot '+(s==='ok'?'ok':s==='err'?'err':''); }
+function updateStorageUI(){
+  const m=document.getElementById('storageMode'); if(!m)return;
+  if(MODE==='api'){ m.innerHTML='存储模式：<b style="color:#15803d">后端数据库（跨设备共享 ✅）</b>'; }
+  else { m.innerHTML='存储模式：<b style="color:#b45309">本地浏览器（localStorage，仅本机）</b>'; }
+}
+function renderDelList(){
+  const html='<option value="">— 选择受访者 —</option>'+DB.map(r=>'<option value="'+r.id+'">'+r.id+' · '+(r.screening&&r.screening.category||'?')+(r.screening&&r.screening.status==='已入选'?'':'('+(r.screening&&r.screening.status||'')+')')+'</option>').join('');
+  ['delResp','pkgResp'].forEach(function(k){
+    const sel=document.getElementById(k); if(!sel)return;
+    const keep=sel.value; sel.innerHTML=html;
+    if(keep && DB.some(r=>r.id===keep)) sel.value=keep;
+  });
+}
+function deleteRespondent(){
+  const id=document.getElementById('delResp').value;
+  if(!id){ toast('请先在「删除数据」里选择受访者'); return; }
+  const r=DB.find(x=>x.id===id); if(!r){ toast('未找到该受访者'); return; }
+  const tcount=(r.pretests||[]).length;
+  if(!confirm('将彻底删除受访者 '+id+'（含档案与 '+tcount+' 条作答记录），此操作不可撤销！建议先「整库备份导出」。确定？')) return;
+  DB=DB.filter(x=>x.id!==id); save();
+  renderDelList(); renderPretestList(); renderReliability(); renderSchedule();
+  toast('已删除受访者 '+id);
+}
+function clearRespondentTests(){
+  const id=document.getElementById('delResp').value;
+  if(!id){ toast('请先在「删除数据」里选择受访者'); return; }
+  const r=DB.find(x=>x.id===id); if(!r){ toast('未找到该受访者'); return; }
+  const tcount=(r.pretests||[]).length;
+  if(!tcount){ toast('该受访者没有作答数据，无需清除'); return; }
+  if(!confirm('将清除 '+id+' 的 '+tcount+' 条作答记录，但保留其档案。确定？')) return;
+  r.pretests=[]; save();
+  if(document.getElementById('ptResp').value===id) loadPretest();
+  renderDelList(); renderReliability(); renderSchedule();
+  toast('已清除 '+id+' 的作答数据，档案保留');
+}
+function clearAllDB(){
+  const n=DB.length;
+  if(!n){ toast('当前库已是空的，无需清空'); return; }
+  if(!confirm('⚠ 警告：这将删除本浏览器中【全部 '+n+' 条】受访者（档案＋所有作答），此操作不可撤销！建议先「整库备份导出」。确定继续？')) return;
+  if(!confirm('再次确认：真的要清空整个数据库吗？（共 '+n+' 条）')) return;
+  DB=[]; save();
+  renderDelList(); renderPretestList(); renderReliability(); renderSchedule();
+  document.getElementById('delResp').value='';
+  if(document.getElementById('ptResp')) document.getElementById('ptResp').value='';
+  if(typeof loadPretest==='function') loadPretest();
+  toast('已清空整库（'+n+' 条受访者已删除）');
+}
+function exportRespondentPackage(){
+  const id=currentPkgId();
+  if(!id){ toast('请先在本卡片「选择受访者」里选一个人'); return; }
+  const r=DB.find(x=>x.id===id); if(!r){ toast('未找到该受访者'); return; }
+  const blob=new Blob([JSON.stringify(r,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='G2_受访者数据_'+id+'_'+dateStr()+'.json'; a.click();
+  toast('已导出受访者 '+id+' 完整数据');
+}
+function importRespondentPackages(input){
+  const files=[...input.files]; if(!files.length)return;
+  let n=0, pending=files.length;
+  files.forEach(file=>{
+    const reader=new FileReader();
+    reader.onload=()=>{
+      try{
+        const r=JSON.parse(reader.result);
+        if(!r || !r.id){ toast('跳过无效数据文件'); }
+        else {
+          const ex=DB.find(x=>x.id===r.id);
+          if(ex){
+            ex.pretests=ex.pretests||[];
+            (r.pretests||[]).forEach(p=>{ const s=ex.pretests.find(q=>q.wave===p.wave); if(!s) ex.pretests.push(p); else Object.assign(s,p); });
+            if(r.screening) ex.screening=r.screening;
+          } else { DB.push(r); }
+          n++;
+        }
+      }catch(e){ toast('数据解析失败：'+e.message); }
+      pending--;
+      if(pending===0){ save(); renderPretestList(); renderDelList(); renderReliability(); renderSchedule(); toast('已合并 '+n+' 个数据文件'); }
+    };
+    reader.readAsText(file);
+  });
+  input.value='';
+}
+
+
+/* ===================== JSON / CSV 双模式工具 ===================== */
+const CSV_COLS=['id','createdAt','tests','word','pref','aestheticWords','willing','age','role','contact','city','channel','record','screening_status','screening_category','screening_reason','screening_valid','source','interview_json','pretests_json'];
+function dlFile(content,type,name){
+  const blob=new Blob([content],{type:type});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+function refreshAllViews(){
+  ['renderPool','renderPretestList','renderDelList','renderReliability','renderSchedule'].forEach(function(fn){
+    try{ if(typeof window[fn]==='function') window[fn](); }catch(e){}
+  });
+}
+function csvCell(v){
+  if(v==null) v='';
+  else if(Array.isArray(v)) v=v.join('|');
+  else if(typeof v==='object') v=JSON.stringify(v);
+  else v=String(v);
+  if(/[",\n\r]/.test(v)) v='"'+v.replace(/"/g,'""')+'"';
+  return v;
+}
+function recToRow(r){
+  const s=r.screening||{};
+  return [r.id,r.createdAt,r.tests,r.word,r.pref,r.aestheticWords,r.willing,r.age,r.role,r.contact,r.city,r.channel,r.record,
+    s.status,s.category,s.reason,(s.valid===undefined?'':(s.valid?'是':'否')),r.source||'',
+    r.interview?JSON.stringify(r.interview):'',
+    (r.pretests&&r.pretests.length)?JSON.stringify(r.pretests):''
+  ].map(csvCell).join(',');
+}
+function dbToCsv(list){ return '\ufeff'+CSV_COLS.join(',')+'\n'+list.map(recToRow).join('\n')+'\n'; }
+function parseCSV(text){
+  if(text.charCodeAt(0)===0xFEFF) text=text.slice(1);
+  const rows=[]; let row=[], cur='', q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){
+      if(c==='"'){ if(text[i+1]==='"'){ cur+='"'; i++; } else q=false; }
+      else cur+=c;
+    }else{
+      if(c==='"') q=true;
+      else if(c===','){ row.push(cur); cur=''; }
+      else if(c==='\n'){ row.push(cur); rows.push(row); row=[]; cur=''; }
+      else if(c==='\r'){ /* ignore */ }
+      else cur+=c;
+    }
+  }
+  if(cur!==''||row.length){ row.push(cur); rows.push(row); }
+  return rows.filter(r=>r.some(c=>String(c).trim()!==''));
+}
+function csvToRecords(text){
+  const rows=parseCSV(text);
+  if(rows.length<2) throw new Error('CSV 无数据行（至少需要表头 + 1 行）');
+  const head=rows[0].map(x=>String(x).trim());
+  const out=[];
+  for(let i=1;i<rows.length;i++){
+    const o={}; head.forEach((h,j)=>{ o[h]=(rows[i][j]!==undefined? String(rows[i][j]).trim() : ''); });
+    const f={
+      tests:(o.tests||'').split('|').map(x=>x.trim()).filter(Boolean),
+      word:o.word||'', pref:o.pref||'', aestheticWords:o.aestheticWords||'',
+      willing:o.willing||'', age:o.age||'', role:o.role||'', contact:o.contact||'',
+      city:o.city||'', channel:o.channel||'', record:o.record||''
+    };
+    let sc;
+    if(o.screening_status||o.screening_category){
+      sc={status:o.screening_status||'', category:o.screening_category||'', reason:o.screening_reason||'', valid:(o.screening_valid==='否'?false:true)};
+    }else if(o['screening.status']){
+      sc={status:o['screening.status']||'', category:o['screening.category']||'', reason:o['screening.reason']||'', valid:true};
+    }else{
+      sc=(typeof classify==='function')? classify(f) : {status:'',category:'',reason:'',valid:true};
+    }
+    const rec=Object.assign({
+      id:o.id||('R'+Date.now().toString(36)+'-'+i),
+      createdAt:o.createdAt||new Date().toISOString().slice(0,10)
+    }, f, {screening:sc, interview:null, source:o.source||'csv', pretests:[]});
+    if(o.interview_json){ try{ rec.interview=JSON.parse(o.interview_json); }catch(e){} }
+    if(o.pretests_json){ try{ const p=JSON.parse(o.pretests_json); if(Array.isArray(p)) rec.pretests=p; }catch(e){} }
+    out.push(rec);
+  }
+  return out;
+}
+function isCsvFile(file){ return /\.csv$/i.test(file.name||'') || file.type==='text/csv'; }
+function readRecords(file, cb){
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const txt=reader.result;
+      let list;
+      if(isCsvFile(file)) list=csvToRecords(txt);
+      else { const d=JSON.parse(txt); list=Array.isArray(d)?d:[d]; }
+      cb(list, null);
+    }catch(e){ cb(null, e); }
+  };
+  reader.onerror=()=>cb(null, new Error('文件读取失败'));
+  reader.readAsText(file,'utf-8');
+}
+function currentPkgId(){
+  const a=document.getElementById('pkgResp'); if(a&&a.value) return a.value;
+  const b=document.getElementById('ptResp'); if(b&&b.value) return b.value;
+  return '';
+}
+/* —— 整库备份导出 CSV —— */
+function exportDBcsv(){
+  if(!DB.length){ toast('库为空，无可导出数据'); return; }
+  dlFile(dbToCsv(DB),'text/csv;charset=utf-8','G2_整库备份_'+dateStr()+'.csv');
+  toast('已导出整库 CSV 备份（'+DB.length+' 条受访者）');
+}
+/* —— 整库恢复导入（JSON / CSV 自动识别） —— */
+function dbRestoreRoute(input){
+  const file=input.files[0]; if(!file)return;
+  const kind=isCsvFile(file)?'CSV':'JSON';
+  readRecords(file,(list,err)=>{
+    if(err){ toast('导入失败：'+err.message); input.value=''; return; }
+    if(!list || !list.length){ toast('文件中没有可用记录'); input.value=''; return; }
+    if(!confirm('识别为 '+kind+' 文件，将用其中的 '+list.length+' 条受访者【整体替换】当前本地数据，确定？\n建议先「整库备份导出」当前数据。')){ input.value=''; return; }
+    DB=list; save(); refreshAllViews();
+    toast('已从 '+kind+' 恢复 '+list.length+' 条受访者');
+    input.value='';
+  });
+}
+/* —— 追加导入（JSON / CSV 自动识别，不覆盖其他人） —— */
+function dbAppendRoute(input){
+  const file=input.files[0]; if(!file)return;
+  const kind=isCsvFile(file)?'CSV':'JSON';
+  readRecords(file,(list,err)=>{
+    if(err){ toast('导入失败：'+err.message); input.value=''; return; }
+    if(!list || !list.length){ toast('文件中没有可用记录'); input.value=''; return; }
+    let added=0, updated=0;
+    list.forEach(r=>{
+      if(!r||!r.id) return;
+      const i=DB.findIndex(x=>x.id===r.id);
+      if(i>=0){ DB[i]=r; updated++; } else { DB.push(r); added++; }
+    });
+    save(); refreshAllViews();
+    toast('已从 '+kind+' 追加导入：新增 '+added+' 条，覆盖更新 '+updated+' 条（其他人数据未动）');
+    input.value='';
+  });
+}
+/* —— 导出单受访者数据 CSV —— */
+function exportPackageCsv(){
+  const id=currentPkgId();
+  if(!id){ toast('请先在本卡片「选择受访者」里选一个人'); return; }
+  const r=DB.find(x=>x.id===id); if(!r){ toast('未找到该受访者'); return; }
+  dlFile(dbToCsv([r]),'text/csv;charset=utf-8','G2_受访者数据_'+id+'_'+dateStr()+'.csv');
+  toast('已导出受访者 '+id+' 的完整数据 CSV');
+}
+/* —— 导入单受访者数据（JSON / CSV，支持多选） —— */
+function pkgImportRoute(input){
+  const files=[...input.files]; if(!files.length)return;
+  let pending=files.length, n=0, fail=0;
+  files.forEach(file=>{
+    readRecords(file,(list,err)=>{
+      if(err){ fail++; }
+      else (list||[]).forEach(r=>{
+        if(!r||!r.id) return;
+        const ex=DB.find(x=>x.id===r.id);
+        if(ex){
+          ex.pretests=ex.pretests||[];
+          (r.pretests||[]).forEach(p=>{ const t=ex.pretests.find(q=>q.wave===p.wave); if(!t) ex.pretests.push(p); else Object.assign(t,p); });
+          if(r.interview) ex.interview=r.interview;
+          if(r.screening) ex.screening=r.screening;
+        }else{ DB.push(r); }
+        n++;
+      });
+      pending--;
+      if(pending===0){
+        save(); refreshAllViews();
+        toast('已合并 '+n+' 位受访者的数据'+(fail?('，'+fail+' 个文件解析失败'):''));
+        input.value='';
+      }
+    });
+  });
+}
+
+/* ===================== 重测排期看板 ===================== */
+function renderSchedule(){
+  const el=document.getElementById('ptSchedule'); if(!el)return;
+  const rows=DB.map(r=>{
+    const w1=(r.pretests||[]).find(p=>p.wave===1), w2=(r.pretests||[]).find(p=>p.wave===2);
+    let status, due='—', days='—';
+    if(!w1){ status='<span class="tag warn">未测</span>'; }
+    else {
+      const t1=new Date(w1.ts).getTime();
+      days=Math.floor((Date.now()-t1)/86400000);
+      const dueT=t1+RETEST_DAYS*86400000;
+      due=new Date(dueT).toISOString().slice(0,10);
+      if(w2){ status='<span class="tag ok">已完两轮</span>'; }
+      else if(days>=RETEST_DAYS){ status='<span class="tag ok">可重测</span>'; }
+      else { status='<span class="tag warn">待等待</span>'; }
+    }
+    return {id:r.id, status, days, due, w1:w1?w1.ts.slice(0,10):'—'};
+  });
+  const cnt={unt:rows.filter(r=>r.status.includes('未测')).length, wait:rows.filter(r=>r.status.includes('待等待')).length, ok:rows.filter(r=>r.status.includes('可重测')).length, done:rows.filter(r=>r.status.includes('已完两轮')).length};
+  let h='<div class="banner">未测 <b>'+cnt.unt+'</b> ｜ 待等待 <b>'+cnt.wait+'</b> ｜ 可重测 <b>'+cnt.ok+'</b> ｜ 已完两轮 <b>'+cnt.done+'</b></div>';
+  h+='<table><tr><th>受访者</th><th>wave1 日期</th><th>已过天数</th><th>wave2 到期</th><th>状态</th></tr>';
+  rows.forEach(r=>{ h+='<tr><td>'+r.id+'</td><td>'+r.w1+'</td><td>'+(r.days==='—'?'—':r.days)+'</td><td>'+r.due+'</td><td>'+r.status+'</td></tr>'; });
+  h+='</table>';
+  if(!rows.length) h='<div class="empty">暂无受访者数据。先在「① 招募筛选」添加受访者，再到本模块开始 wave1。</div>';
+  el.innerHTML=h;
+}
+/* —— 导出格式选择弹窗 —— */
+var _exportTarget='db';
+function openExportChoice(kind){ _exportTarget=kind; document.getElementById('exportModal').style.display='flex'; }
+function closeExportChoice(){ var m=document.getElementById('exportModal'); if(m) m.style.display='none'; }
+function getSelectedEngineData(){
+  const id=document.getElementById('pkgResp').value;
+  if(!id){ toast('请先在上方「选择受访者」里选一个人'); return null; }
+  const r=DB.find(x=>x.id===id);
+  if(!r){ toast('未找到该受访者'); return null; }
+  const eng=(r.interview&&r.interview.engine)||null;
+  if(!eng||!eng.answers||!Object.keys(eng.answers).length){ toast('该受访者尚未在「模块3 神性测评引擎」做自评，无引擎自评数据可导出'); return null; }
+  return { id, name:(r.screening&&r.screening.name)||r.id, engine:eng };
+}
+function exportEngineJson(){
+  const d=getSelectedEngineData(); if(!d)return;
+  const blob=new Blob([JSON.stringify(d,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='引擎自评数据_'+d.id+'_'+dateStr()+'.json'; a.click();
+  toast('已导出 '+d.id+' 的引擎自评数据（含 answers／weights／vector）');
+}
+function exportEngineCsv(){
+  const d=getSelectedEngineData(); if(!d)return;
+  let csv='qid,value\n';
+  Object.keys(d.engine.answers).forEach(k=>{ csv+=k+','+d.engine.answers[k]+'\n'; });
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='引擎自评数据_'+d.id+'_'+dateStr()+'.csv'; a.click();
+  toast('已导出 CSV（qid,value 两列，供引擎 demo 页导入）');
+}
+function doExport(fmt){
+  closeExportChoice();
+  if(_exportTarget==='db'){ fmt==='json' ? exportDB() : exportDBcsv(); }
+  else if(_exportTarget==='engine'){ fmt==='json' ? exportEngineJson() : exportEngineCsv(); }
+  else { fmt==='json' ? exportRespondentPackage() : exportPackageCsv(); }
+}
+document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ closeExportChoice(); } });
+
+</script>
+<script>
+/* 引擎兜底加载：若主路径（../ai-aesthetic-engine）因本地打开方式不同而 404，
+   依次尝试候选路径，确保 data.js / engine.js 都能加载（兼容多种部署/本地方式）。 */
+(function(){
+  if(window.AESTHETIC_DATA && window.Engine) return; // 主路径已加载，无需兜底
+  const bases=['.','ai-aesthetic-engine','../ai-aesthetic-engine','/ai-aesthetic-engine'];
+  function load(base, file){
+    return new Promise((res)=>{ const s=document.createElement('script'); s.src=base+'/'+file;
+      s.onload=()=>res(true); s.onerror=()=>res(false); document.head.appendChild(s); });
+  }
+  async function go(){
+    for(const b of bases){
+      if(window.AESTHETIC_DATA && window.Engine) break;
+      const d=await load(b,'data.js');
+      if(d && !window.AESTHETIC_DATA) continue;            // data 加载失败，换下一基址
+      const e=await load(b,'engine.js');
+      if((d||window.AESTHETIC_DATA) && (e||window.Engine) && window.AESTHETIC_DATA && window.Engine) break;
+    }
+    if(window.AESTHETIC_DATA && window.Engine){
+      const ab=document.querySelector('nav button.active'); const t=ab&&ab.dataset.tab;
+      if(t==='pretest'){ renderPretestList(); renderDelList(); renderReliability(); renderSchedule(); }
+      if(t==='data'){ renderDelList(); }
+    } else {
+      console.warn('引擎加载失败：所有候选路径均 404，请检查 ai-aesthetic-engine 目录位置。');
+    }
+  }
+  if(document.readyState==='loading') window.addEventListener('DOMContentLoaded', go);
+  else go();
+})();
+</script>
+<!-- 导出格式选择弹窗 -->
+<div id="exportModal" class="modal-mask" style="display:none" onclick="if(event.target===this)closeExportChoice()">
+  <div class="modal-box">
+    <div class="mt">选择导出格式</div>
+    <div class="opts">
+      <button class="opt" onclick="doExport('json')"><b>JSON</b><span>保留完整结构（含访谈 / 作答），便于二次导入。</span></button>
+      <button class="opt" onclick="doExport('csv')"><b>CSV</b><span>扁平表格，可用 Excel 打开（访谈 / 作答存于 JSON 列，导回不丢数据）。</span></button>
+    </div>
+    <button class="cancel" onclick="closeExportChoice()">取消</button>
+  </div>
+</div>
+<script>
+(function(){
+  var t=document.getElementById('themeToggle');
+  if(!t) return;
+  function apply(theme){
+    if(theme==='dark'){document.documentElement.setAttribute('data-theme','dark');t.textContent='☀️ 切亮色';}
+    else{document.documentElement.removeAttribute('data-theme');t.textContent='🌙 切暗色';}
+  }
+  var saved=localStorage.getItem('aae-theme');
+  if(!saved){saved=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}
+  apply(saved);
+  t.addEventListener('click',function(){
+    var cur=document.documentElement.getAttribute('data-theme')==='dark'?'dark':'light';
+    var next=cur==='dark'?'light':'dark';
+    localStorage.setItem('aae-theme',next);apply(next);
+  });
+})();
+</script>
+</body>
+</html>

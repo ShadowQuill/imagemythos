@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>🌠 神性星系 · AI 生成粒子宇宙</title>
+<style>
+  :root{
+    --bg:#03040a; --ink:#f2eefb; --muted:#a79fc2; --line:rgba(255,255,255,.12);
+    --acc:#ffd27a; --acc2:#8bd0ff; --card:rgba(16,14,30,.72); --chip:rgba(255,255,255,.08);
+  }
+  [data-theme="light"]{
+    --bg:#eef0fb; --ink:#221a36; --muted:#6b6385; --line:rgba(20,12,40,.14);
+    --acc:#d99a2a; --acc2:#2aa6e0; --card:rgba(255,255,255,.8); --chip:rgba(30,12,60,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft Yahei",sans-serif;
+    overflow:hidden;-webkit-font-smoothing:antialiased}
+  #stars{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0;background:#03040a}
+  #bg{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:1}
+  .topbar{position:fixed;top:0;left:0;right:0;z-index:5;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:10px 16px;background:linear-gradient(180deg,rgba(0,0,0,.55),transparent);}
+  [data-theme="light"] .topbar{background:linear-gradient(180deg,rgba(255,255,255,.6),transparent);}
+  .home-btn{color:var(--ink);text-decoration:none;font-size:13px;opacity:.85;padding:6px 10px;border:1px solid var(--line);border-radius:10px}
+  .home-btn:hover{opacity:1}
+  .nav{display:flex;gap:6px}
+  .nav a{font-size:12px;padding:5px 9px;border:1px solid var(--line);border-radius:10px;color:var(--ink);text-decoration:none;opacity:.7}
+  .nav a.active{opacity:1;border-color:var(--acc);background:var(--chip)}
+  .title{font-size:15px;font-weight:600;letter-spacing:.5px}
+  .title .em{background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .spacer{flex:1}
+  .theme-btn{background:var(--chip);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:6px 10px;font-size:13px;cursor:pointer}
+  .top-actions{display:flex;gap:8px}
+  .panel{position:fixed;top:64px;right:14px;z-index:6;width:296px;max-height:calc(100vh - 90px);overflow:auto;
+    background:var(--card);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border:1px solid var(--line);border-radius:16px;padding:14px 14px 18px;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+  .panel.collapsed{width:auto}
+  .panel h2{font-size:13px;margin:2px 0 10px;display:flex;align-items:center;gap:8px}
+  .panel .ai{font-size:11px;color:var(--muted);font-weight:400}
+  .toggle{cursor:pointer;font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:3px 8px;background:var(--chip)}
+  .row{margin:11px 0}
+  .row label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:5px}
+  .row label b{color:var(--ink);font-weight:600}
+  input[type=range]{width:100%;accent-color:var(--acc)}
+  .desc-box{margin-top:6px}
+  .desc-box input{width:100%;padding:8px 10px;border-radius:10px;border:1px solid var(--line);
+    background:var(--chip);color:var(--ink);font-size:13px;outline:none}
+  .desc-box button{width:100%;padding:9px;border:none;border-radius:10px;cursor:pointer;
+    background:linear-gradient(90deg,var(--acc),var(--acc2));color:#1a1330;font-size:13px;font-weight:600}
+  .desc-box .hint{font-size:11px;color:var(--muted);margin-top:7px;line-height:1.5}
+  .palette{display:flex;gap:6px;margin-top:4px}
+  .palette i{flex:1;height:18px;border-radius:5px;display:block;border:1px solid var(--line)}
+  .preset-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .preset, .zodiac, .type{font-size:11px;padding:5px 9px;border-radius:20px;border:1px solid var(--line);background:var(--chip);color:var(--ink);cursor:pointer}
+  .zodiac.active, .preset.active, .type.active{opacity:1;border-color:var(--acc);background:rgba(255,210,122,.14)}
+  .section-title{font-size:11px;color:var(--muted);margin:12px 0 6px}
+  .badge{position:fixed;left:16px;bottom:14px;z-index:5;font-size:11px;color:var(--muted);
+    background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px 10px;max-width:62vw;line-height:1.5}
+  .badge b{color:var(--ink)}
+  .quiz-banner{position:fixed;left:50%;top:60px;transform:translateX(-50%);z-index:7;
+    display:flex;align-items:center;gap:10px;max-width:min(92vw,560px);
+    background:linear-gradient(90deg,rgba(255,210,122,.18),rgba(139,208,255,.18));
+    border:1px solid var(--line);border-radius:14px;padding:10px 14px;
+    font-size:12.5px;color:var(--ink);box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  .quiz-banner b{color:var(--acc)}
+  .quiz-banner a{color:#1a1330;background:linear-gradient(90deg,var(--acc),var(--acc2));
+    text-decoration:none;padding:6px 12px;border-radius:10px;font-weight:600;white-space:nowrap}
+  .quiz-banner .x{cursor:pointer;opacity:.6;font-size:16px;line-height:1;padding:0 2px}
+  .quiz-banner .x:hover{opacity:1}
+  .hidden{display:none!important}
+  ::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<canvas id="bg"></canvas>
+
+<div class="topbar">
+  <a href="/ai-aesthetic-engine/index.html" class="home-btn">← 返回首页</a>
+  <div class="nav">
+    <a href="/ai-aesthetic-engine/nebula.html">🌌 星云</a>
+    <a href="/ai-aesthetic-engine/flowfield.html">🌊 流场</a>
+    <a href="/ai-aesthetic-engine/galaxy.html" class="active">🌠 星系</a>
+  </div>
+  <div class="title">🌠 <span class="em">神性星系</span> · AI 生成粒子宇宙</div>
+  <div class="spacer"></div>
+  <div class="top-actions">
+    <button id="regenBtn" class="theme-btn">🔄 重新生成</button>
+    <button id="pauseBtn" class="theme-btn">⏸ 暂停旋转</button>
+  </div>
+  <button id="themeToggle" class="theme-btn">🌙 切暗色</button>
+  <button id="ecoToggle" class="theme-btn">🔋 后台暂停 · 开</button>
+</div>
+
+<div class="panel" id="panel">
+  <h2>🎛️ 可变视觉设计 <span class="ai">粒子系统驱动</span>
+    <span class="spacer" style="flex:1"></span><span class="toggle" id="panelToggle">收起</span></h2>
+
+  <div id="panelBody">
+    <div class="desc-box">
+      <input id="descInput" placeholder="描述你的星系，如：金色螺旋星系 / 蓝紫深邃星海" />
+      <button id="genBtn">✦ 生成我的星系</button>
+      <div class="hint">基于你的 <b>8 维审美向量</b>确定性塑造旋臂与律动；也可输入关键词或选择下方风格/星座实时改写。</div>
+    </div>
+
+    <div class="palette" id="palette"><i></i><i></i><i></i></div>
+
+    <div class="section-title">风格预设</div>
+    <div class="preset-row" id="presets">
+      <span class="preset" data-default="1">默认</span>
+      <span class="preset" data-d="蓝紫金色星系">蓝紫金</span>
+      <span class="preset" data-d="赛博紫星系">赛博紫</span>
+      <span class="preset" data-d="神圣金色星系">神圣金</span>
+      <span class="preset" data-d="玫红梦幻星系">玫红梦</span>
+      <span class="preset" data-d="翠绿极光星系">极光绿</span>
+      <span class="preset" data-d="炽红超新星遗迹">炽红</span>
+    </div>
+
+    <div class="section-title">星系类型</div>
+    <div class="preset-row" id="types">
+      <span class="type active" data-t="spiral">螺旋</span>
+      <span class="type" data-t="elliptical">椭圆</span>
+      <span class="type" data-t="lenticular">透镜状</span>
+      <span class="type" data-t="irregular">不规则</span>
+      <span class="type" data-t="ring">环星系</span>
+      <span class="type" data-t="barred">棒旋</span>
+      <span class="type" data-t="merger">并合</span>
+    </div>
+
+    <div class="section-title">十二星座</div>
+    <div class="preset-row" id="zodiacs">
+      <span class="zodiac" data-z="白羊">白羊</span>
+      <span class="zodiac" data-z="金牛">金牛</span>
+      <span class="zodiac" data-z="双子">双子</span>
+      <span class="zodiac" data-z="巨蟹">巨蟹</span>
+      <span class="zodiac" data-z="狮子">狮子</span>
+      <span class="zodiac" data-z="处女">处女</span>
+      <span class="zodiac" data-z="天秤">天秤</span>
+      <span class="zodiac" data-z="天蝎">天蝎</span>
+      <span class="zodiac" data-z="射手">射手</span>
+      <span class="zodiac" data-z="摩羯">摩羯</span>
+      <span class="zodiac" data-z="水瓶">水瓶</span>
+      <span class="zodiac" data-z="双鱼">双鱼</span>
+    </div>
+
+    <div class="row">
+      <label>旋臂数量 <b id="vArms"></b></label>
+      <input type="range" id="pArms" min="2" max="6" value="4">
+    </div>
+    <div class="row">
+      <label>旋臂紧密度 <b id="vTwist"></b></label>
+      <input type="range" id="pTwist" min="0" max="100" value="55">
+    </div>
+    <div class="row">
+      <label>自转速度 <b id="vRot"></b></label>
+      <input type="range" id="pRot" min="0" max="100" value="30">
+    </div>
+    <div class="row">
+      <label>湍流强度 <b id="vTurb"></b></label>
+      <input type="range" id="pTurb" min="0" max="100" value="45">
+    </div>
+    <div class="row">
+      <label>辉光强度 <b id="vGlow"></b></label>
+      <input type="range" id="pGlow" min="0" max="100" value="55">
+    </div>
+    <div class="row">
+      <label>明亮度 <b id="vExposure"></b></label>
+      <input type="range" id="pExposure" min="0" max="100" value="55">
+    </div>
+  </div>
+</div>
+
+<div class="badge" id="badge"></div>
+
+<div class="quiz-banner hidden" id="quizBanner">
+  <span>🌌 当前为 <b>默认宇宙</b>，尚未读取你的审美特质。完成一次测评可生成专属于你的星系。</span>
+  <a href="/ai-aesthetic-engine/index.html" target="_blank">去做测评</a>
+  <span class="x" id="quizClose">×</span>
+</div>
+
+<script id="vs" type="x-shader">#version 300 es
+precision highp float;
+in float aRad;
+in float aArm;
+in float aSeed;
+uniform float uTime, uRotTime, uRot, uArms, uTwist, uTurb, uSat, uSize, uIncl, uPointScale, uSeed, uExposure, uType;
+uniform float uUserRot, uUserIncl, uPanX, uPanY;
+uniform vec3 uColA, uColB, uColC;
+out vec3 vCol;
+out float vAlpha;
+const float PI = 3.14159265;
+float hash11(float n){ return fract(sin(n*12.9898)*43758.5453); }
+float hash21(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
+float vnoise(vec2 p){
+  vec2 i=floor(p), f=fract(p);
+  float a=hash21(i), b=hash21(i+vec2(1.0,0.0)), c=hash21(i+vec2(0.0,1.0)), d=hash21(i+vec2(1.0,1.0));
+  vec2 u=f*f*(3.0-2.0*f);
+  return mix(mix(a,b,u.x), mix(c,d,u.x), u.y);
+}
+void main(){
+  float r = aRad;                 // 0..1 向中心聚集
+  float rad = r;                  // 用于上色/点尺寸的径向量
+  vec3 pos;
+  float spin = uRotTime*uRot + uUserRot;
+
+  if(uType < 0.5){
+    // —— 螺旋星系 ——
+    float arm = floor(aArm*uArms);
+    float armOff = arm*(2.0*PI/uArms) + uSeed*6.2831853;
+    float jitter = (hash11(aSeed*3.7)-0.5)*0.40;
+    float n = vnoise(vec2(r*3.0, armOff*1.5) + aSeed*13.0 + uTime*0.03 + uSeed*7.0);
+    float disp = (n-0.5)*uTurb*0.42*(0.25+r);
+    float ang = armOff + jitter + spin + r*uTwist + uSeed*0.7;
+    vec2 dir = vec2(cos(ang), sin(ang));
+    vec2 pos2 = dir*r + vec2(-dir.y, dir.x)*disp;
+    float y = (hash11(aSeed*7.0)-0.5)*0.07*(1.0-r*0.6);
+    pos = vec3(pos2.x, y, pos2.y);
+  } else if(uType < 1.5){
+    // —— 椭圆星系（扁球，无旋臂）——
+    float u = aArm*2.0*PI;
+    float v = (aSeed-0.5)*PI;
+    float rr = pow(r, 0.6);
+    pos = vec3(cos(v)*cos(u)*rr, sin(v)*rr*0.55, cos(v)*sin(u)*rr);
+    float ca=cos(spin*0.5), sa=sin(spin*0.5);
+    pos.xz = mat2(ca,-sa,sa,ca)*pos.xz;
+    rad = rr;
+  } else if(uType < 2.5){
+    // —— 透镜状星系（核球 + 薄盘）——
+    if(aSeed < 0.32){
+      float u = aArm*2.0*PI; float v=(aSeed*7.0-0.5)*PI*0.5;
+      float rr = pow(r,0.5)*0.45;
+      pos = vec3(cos(u)*rr, sin(v)*rr*0.6, sin(u)*rr);
+    } else {
+      float ang = aArm*2.0*PI + r*uTwist*0.4 + spin;
+      float rr = 0.12 + r*0.95;
+      float disp = (vnoise(vec2(r*4.0, aArm*10.0)+uSeed*5.0)-0.5)*uTurb*0.10;
+      pos = vec3(cos(ang)*rr, disp, sin(ang)*rr);
+    }
+  } else if(uType < 3.5){
+    // —— 不规则星系（无对称，团块）——
+    float ang = aArm*2.0*PI;
+    float rr = pow(r,0.5);
+    float n1 = vnoise(vec2(aArm*9.0, aSeed*9.0)+uSeed*3.0);
+    float n2 = vnoise(vec2(aSeed*7.0+20.0, aArm*7.0)+uSeed*3.0);
+    vec3 c = vec3((n1-0.5)*2.0, (n2-0.5)*1.2, (n1-n2)*1.6);
+    pos = vec3(cos(ang)*rr, sin(ang)*rr*0.6, 0.0) + c*rr*0.9*uTurb;
+    float ca=cos(spin*0.4), sa=sin(spin*0.4);
+    pos.xz = mat2(ca,-sa,sa,ca)*pos.xz;
+    rad = rr;
+  } else if(uType < 4.5){
+    // —— 环星系（核球 + 明亮环）——
+    float u = aArm*2.0*PI;
+    float ringRad = 0.55 + 0.12*(aSeed-0.5);
+    float ringW = 0.08 + 0.06*r;
+    float rr = ringRad + (aSeed-0.5)*ringW;
+    float y = (hash11(aSeed*7.0)-0.5)*0.06;
+    pos = vec3(cos(u)*rr, y, sin(u)*rr);
+    // 中央核球（少量粒子）
+    if(aSeed < 0.12){
+      float rc = pow(r,0.7)*0.18;
+      pos = vec3(cos(u)*rc, y*0.5, sin(u)*rc);
+    }
+    float ca=cos(spin*0.35), sa=sin(spin*0.35);
+    pos.xz = mat2(ca,-sa,sa,ca)*pos.xz;
+    rad = rr;
+  } else if(uType < 5.5){
+    // —— 棒旋星系（中央棒 + 旋臂）——
+    float arm = floor(aArm*uArms);
+    float armOff = arm*(2.0*PI/uArms) + uSeed*6.2831853;
+    float barLen = 0.28;
+    float barW = 0.07;
+    vec3 pbar = vec3(0.0);
+    if(r < barLen + hash11(aSeed*2.3)*0.08 && abs(aArm-0.5) < 0.18){
+      // 中央棒
+      float bx = (aArm-0.5)*barLen*4.0;
+      float by = (hash11(aSeed*4.1)-0.5)*barW*(1.0-abs(bx)/barLen);
+      pbar = vec3(bx, by*0.3, 0.0);
+    }
+    float jitter = (hash11(aSeed*3.7)-0.5)*0.35;
+    float n = vnoise(vec2(r*3.2, armOff*1.4) + aSeed*13.0 + uTime*0.03 + uSeed*7.0);
+    float disp = (n-0.5)*uTurb*0.38*(0.25+r);
+    float ang = armOff + jitter + spin + r*uTwist*1.1 + uSeed*0.7;
+    // 棒端开始旋臂
+    float startR = barLen*0.85;
+    float effR = startR + (r-startR)*1.15;
+    vec2 dir = vec2(cos(ang), sin(ang));
+    vec2 pos2 = dir*effR + vec2(-dir.y, dir.x)*disp;
+    float y = (hash11(aSeed*7.0)-0.5)*0.07*(1.0-r*0.5);
+    pos = vec3(pos2.x, y, pos2.y);
+    if(length(pbar)>0.001) pos = pbar;
+    float ca=cos(spin*0.3), sa=sin(spin*0.3);
+    pos.xz = mat2(ca,-sa,sa,ca)*pos.xz;
+  } else {
+    // —— 并合星系（双核 + 潮汐尾）——
+    float u = aArm*2.0*PI;
+    float which = (aSeed < 0.5) ? 0.0 : 1.0;
+    float offX = (which-0.5)*0.55;
+    float offY = (which-0.5)*0.12;
+    float rr = pow(r,0.65)*0.55;
+    float n1 = vnoise(vec2(aArm*6.0, aSeed*6.0)+uSeed*3.0+uTime*0.02);
+    float n2 = vnoise(vec2(aSeed*5.0+20.0, aArm*5.0)+uSeed*3.0);
+    // 潮汐尾：从每个核延伸出的弧形尾
+    float tailAng = u + which*3.14159265 + spin*0.5 + r*2.5;
+    float tailR = 0.55 + r*0.9;
+    vec3 tail = vec3(cos(tailAng)*tailR, sin(tailAng)*0.15, sin(tailAng)*tailR);
+    tail += vec3((n1-0.5)*0.4, (n2-0.5)*0.25, (n1-n2)*0.35)*uTurb;
+    // 核球
+    vec3 core = vec3(cos(u)*rr + offX, sin(u)*rr*0.35 + offY, sin(u)*rr);
+    pos = mix(core, tail, smoothstep(0.35,0.85,r));
+    float ca=cos(spin*0.25), sa=sin(spin*0.25);
+    pos.xz = mat2(ca,-sa,sa,ca)*pos.xz;
+    rad = rr + 0.15;
+  }
+
+  float incl = uIncl + uUserIncl;
+  float ci=cos(incl), si=sin(incl);
+  pos.yz = mat2(ci,-si,si,ci)*pos.yz;
+  pos.xy += vec2(uPanX, uPanY);
+  float w = pos.z + 2.6;
+  gl_Position = vec4(pos.xy*1.5, 0.0, w);
+
+  // 三段颜色渐变：核心 uColA → 中段 uColB → 外缘 uColC
+  vec3 grad = (rad<0.5) ? mix(uColA, uColB, rad*2.0) : mix(uColB, uColC, (rad-0.5)*2.0);
+  float core = smoothstep(0.34, 0.0, rad);
+  vCol = grad + uColA*core*0.45;
+  float tw = 0.6 + 0.4*sin(uTime*1.5 + aSeed*40.0);
+  vAlpha = (0.30+0.45*aSeed)*(1.0-rad*0.45)*tw;
+  float sz = uSize*uPointScale*(0.6+0.8*aSeed)*(0.7+0.5*(1.0-rad))*6.0/w;
+  gl_PointSize = clamp(sz, 1.0, 24.0);
+}
+</script>
+
+<script id="fs" type="x-shader">#version 300 es
+precision highp float;
+in vec3 vCol;
+in float vAlpha;
+uniform float uExposure;
+out vec4 fragColor;
+void main(){
+  vec2 d = gl_PointCoord - 0.5;
+  float r2 = dot(d,d);
+  if(r2 > 0.25) discard;
+  float glow = smoothstep(0.25, 0.0, r2);
+  fragColor = vec4(vCol*glow*vAlpha*uExposure, 1.0);
+}
+</script>
+
+<script>
+(function(){
+  "use strict";
+  let energySave = true;
+  let rotPaused = false, pauseT = 0;
+  // 鼠标拖拽旋转/倾斜（暂停旋转后仍可拖动）
+  let userRot = 0, userIncl = 0, panX = 0, panY = 0;
+  // ---------- 主题 ----------
+  function themeInit(){
+    const saved=localStorage.getItem('aae-theme');
+    if(saved) document.documentElement.setAttribute('data-theme', saved);
+    refreshThemeBtn();
+  }
+  function refreshThemeBtn(){
+    const t=document.documentElement.getAttribute('data-theme');
+    document.getElementById('themeToggle').textContent=(t==='dark'?'🌙 切暗色':'☀️ 切亮色');
+  }
+  document.getElementById('themeToggle').addEventListener('click', ()=>{
+    const cur=document.documentElement.getAttribute('data-theme');
+    const next=(cur==='dark')?'light':'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try{ localStorage.setItem('aae-theme', next); }catch(e){}
+    refreshThemeBtn();
+  });
+  themeInit();
+
+  // ---------- 节能/暂停 ----------
+  const ecoBtn=document.getElementById('ecoToggle');
+  const pauseBtn=document.getElementById('pauseBtn');
+  function refreshEcoBtn(){ ecoBtn.textContent = energySave?'🔋 后台暂停 · 开':'🔋 后台暂停 · 关'; }
+  function refreshPauseBtn(){ pauseBtn.textContent = rotPaused?'▶ 继续旋转':'⏸ 暂停旋转'; }
+  ecoBtn.addEventListener('click', ()=>{
+    energySave=!energySave; refreshEcoBtn();
+    if(energySave){ if(!document.hidden) startLoop(); } else { startLoop(); }
+  });
+  pauseBtn.addEventListener('click', ()=>{
+    rotPaused=!rotPaused;
+    if(rotPaused) pauseT=(performance.now()-t0)/1000;
+    refreshPauseBtn();
+  });
+  refreshEcoBtn(); refreshPauseBtn();
+
+  // ---------- 工具 ----------
+  function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+  function clamp01(x){return clamp(x,0,1);}
+  function rgb2hsv(r,g,b){
+    let max=Math.max(r,g,b), min=Math.min(r,g,b), h=0,s=0,v=max;
+    const d=max-min; s=max===0?0:d/max;
+    if(d!==0){
+      if(max===r) h=((g-b)/d+(g<b?6:0))/6;
+      else if(max===g) h=((b-r)/d+2)/6;
+      else h=((r-g)/d+4)/6;
+    }
+    return [h,s,v];
+  }
+
+  // ---------- WebGL ----------
+  const canvas=document.getElementById('bg');
+  const gl=canvas.getContext('webgl2', {alpha:true, premultipliedAlpha:false});
+  if(!gl){ document.getElementById('badge').textContent='你的浏览器不支持 WebGL2，无法渲染星系。'; return; }
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.ONE, gl.ONE);
+  gl.disable(gl.DEPTH_TEST);
+
+  function compile(type, src){
+    const sh=gl.createShader(type); gl.shaderSource(sh, src.trim()); gl.compileShader(sh);
+    if(!gl.getShaderParameter(sh, gl.COMPILE_STATUS)){ console.error(gl.getShaderInfoLog(sh)); return null; }
+    return sh;
+  }
+  const vs=compile(gl.VERTEX_SHADER, document.getElementById('vs').text.trim());
+  const fs=compile(gl.FRAGMENT_SHADER, document.getElementById('fs').text.trim());
+  if(!vs||!fs){ document.getElementById('badge').textContent='着色器编译失败，请查看控制台。'; return; }
+  const prog=gl.createProgram(); gl.attachShader(prog,vs); gl.attachShader(prog,fs); gl.linkProgram(prog);
+  if(!gl.getProgramParameter(prog, gl.LINK_STATUS)){ console.error(gl.getProgramInfoLog(prog)); return; }
+  gl.useProgram(prog);
+
+  const COUNT=120000;
+  const data=new Float32Array(COUNT*3);
+  for(let i=0;i<COUNT;i++){
+    const r=Math.pow(Math.random(),1.7);
+    data[i*3+0]=r;
+    data[i*3+1]=Math.random();
+    data[i*3+2]=Math.random();
+  }
+  const vbo=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+  gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+  const stride=3*4;
+  function bindAttr(name, off){
+    const loc=gl.getAttribLocation(prog,name);
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc,1,gl.FLOAT,false,stride,off);
+  }
+  bindAttr('aRad',0); bindAttr('aArm',4); bindAttr('aSeed',8);
+
+  const U={};
+  ['uTime','uRotTime','uRot','uArms','uTwist','uTurb','uSat','uSize','uIncl','uPointScale','uSeed','uExposure','uType','uColA','uColB','uColC','uUserRot','uUserIncl','uPanX','uPanY']
+    .forEach(n=>{ U[n]=gl.getUniformLocation(prog,n); });
+
+  function resize(){
+    const dpr=Math.min(window.devicePixelRatio||1, 2);
+    canvas.width=Math.floor(innerWidth*dpr); canvas.height=Math.floor(innerHeight*dpr);
+    canvas.style.width=innerWidth+'px'; canvas.style.height=innerHeight+'px';
+    gl.viewport(0,0,canvas.width,canvas.height);
+    gl.uniform1f(U.uPointScale, dpr);
+  }
+  window.addEventListener('resize', resize); resize();
+
+  // ---------- 背景星空 ----------
+  const starCanvas=document.getElementById('stars');
+  const sctx=starCanvas.getContext('2d');
+  let curHue=0.10;
+  function drawStars(hue){
+    if(hue!=null) curHue=hue;
+    const dpr=Math.min(window.devicePixelRatio||1,2);
+    const w=innerWidth, hgt=innerHeight;
+    starCanvas.width=Math.floor(w*dpr); starCanvas.height=Math.floor(hgt*dpr);
+    starCanvas.style.width=w+'px'; starCanvas.style.height=hgt+'px';
+    sctx.setTransform(dpr,0,0,dpr,0,0);
+    sctx.fillStyle='#03040a'; sctx.fillRect(0,0,w,hgt);
+    const cx=w*0.5, cy=hgt*0.5, rad=Math.max(w,hgt)*0.42;
+    const g0=sctx.createRadialGradient(cx,cy,0,cx,cy,rad);
+    g0.addColorStop(0,`hsla(${Math.round(curHue*360)},70%,60%,0.10)`);
+    g0.addColorStop(0.5,`hsla(${Math.round(curHue*360)},70%,55%,0.04)`);
+    g0.addColorStop(1,'hsla(0,0%,0%,0)');
+    sctx.fillStyle=g0; sctx.fillRect(0,0,w,hgt);
+    const neb=[[0.18,0.25,210,150],[0.82,0.7,300,120],[0.5,0.88,180,210]];
+    neb.forEach(([nx,ny,hueN,bright])=>{
+      const cxp=nx*w, cyp=ny*hgt, radn=Math.max(w,hgt)*0.35;
+      const g=sctx.createRadialGradient(cxp,cyp,0,cxp,cyp,radn);
+      g.addColorStop(0,`hsla(${hueN},60%,60%,${bright/1000})`);
+      g.addColorStop(1,'hsla(0,0%,0%,0)');
+      sctx.fillStyle=g; sctx.fillRect(0,0,w,hgt);
+    });
+    const n=Math.floor((w*hgt)/2200);
+    for(let i=0;i<n;i++){
+      const x=Math.random()*w, y=Math.random()*hgt, r=Math.random()*1.3+0.2;
+      const a=Math.random()*0.6+0.25;
+      const tint=Math.random();
+      const col = tint<0.15? `rgba(180,200,255,${a})` : tint>0.9? `rgba(255,225,190,${a})` : `rgba(255,255,255,${a})`;
+      sctx.fillStyle=col;
+      sctx.beginPath(); sctx.arc(x,y,r,0,Math.PI*2); sctx.fill();
+    }
+  }
+  window.addEventListener('resize', ()=>drawStars()); drawStars();
+
+  // ---------- 参数 ----------
+  const params={ uArms:4, uTwist:7.0, uRot:0.10, uTurb:0.8, uSat:0.7, uSize:1.05, uIncl:0.9, uSeed:0.0, uExposure:0.7, uType:0,
+                 uColA:[0.35,0.25,0.95], uColB:[0.95,0.35,0.75], uColC:[1.0,0.75,0.25] };
+  const TYPE_MAP={spiral:0, elliptical:1, lenticular:2, irregular:3, ring:4, barred:5, merger:6};
+  const TYPE_CN={spiral:'螺旋', elliptical:'椭圆', lenticular:'透镜状', irregular:'不规则'};
+
+  // 星座 = 形态/形状（综合星座象征形状 + 占星四象特质），不改颜色
+  // type 星系类型, arms 旋臂数, twist 紧密度, rot 自转, turb 湍流, size 尺度, incl 倾角
+  const ZODIAC={
+    白羊:{type:'spiral',    arms:3, twist:1.3,  rot:1.6,  turb:1.45, size:1.00, incl:0.60, pal:'炽红超新星遗迹'}, // 火/开创·三道利刃螺旋
+    金牛:{type:'elliptical',arms:5, twist:0.8,  rot:0.45, turb:0.60, size:1.30, incl:1.15, pal:'翠绿极光星系'}, // 土/稳固·扁球椭圆
+    双子:{type:'lenticular',arms:2,twist:1.25, rot:1.4,  turb:0.95, size:0.95, incl:0.90, pal:'蓝紫金色星系'}, // 风/双重·透镜状
+    巨蟹:{type:'elliptical',arms:4, twist:0.9,  rot:0.5,  turb:0.80, size:1.10, incl:1.20, pal:'蓝紫金色星系'}, // 水/守护·圆润椭圆
+    狮子:{type:'spiral',    arms:4, twist:1.1,  rot:0.9,  turb:1.00, size:1.35, incl:0.70, pal:'神圣金色星系'}, // 火/王·庞大螺旋
+    处女:{type:'lenticular',arms:6, twist:1.0,  rot:0.5,  turb:0.60, size:0.95, incl:0.85, pal:'蓝紫金色星系'}, // 土/精细·透镜状
+    天秤:{type:'lenticular',arms:4, twist:1.0,  rot:0.8,  turb:0.70, size:1.05, incl:0.90, pal:'玫红梦幻星系'}, // 风/平衡·透镜状
+    天蝎:{type:'irregular', arms:3, twist:1.4,  rot:0.5,  turb:1.50, size:1.10, incl:1.00, pal:'赛博紫星系'}, // 水/深邃·不规则团块
+    射手:{type:'spiral',    arms:4, twist:1.3,  rot:1.5,  turb:1.20, size:1.00, incl:0.70, pal:'蓝紫金色星系'}, // 火/扩张·舒展螺旋
+    摩羯:{type:'elliptical',arms:5, twist:0.9,  rot:0.4,  turb:0.60, size:1.10, incl:1.20, pal:'蓝紫金色星系'}, // 土/克制·椭圆
+    水瓶:{type:'irregular', arms:4, twist:1.25, rot:1.1,  turb:1.10, size:0.95, incl:0.85, pal:'赛博紫星系'}, // 风/流动·不规则
+    双鱼:{type:'irregular', arms:4, twist:0.85, rot:0.6,  turb:1.00, size:1.10, incl:1.00, pal:'玫红梦幻星系'}  // 水/梦幻·不规则
+  };
+  const STYLE_PAL={
+    '蓝紫金色星系':[[0.35,0.25,0.95],[0.95,0.35,0.75],[1.0,0.75,0.25]],
+    '赛博紫星系':  [[0.55,0.10,0.95],[0.15,0.85,0.95],[0.95,0.10,0.55]],
+    '神圣金色星系':[[1.0,0.85,0.35],[1.0,0.55,0.15],[0.95,0.95,0.85]],
+    '玫红梦幻星系':[[0.95,0.25,0.55],[0.75,0.45,0.95],[1.0,0.75,0.85]],
+    '翠绿极光星系':[[0.15,0.75,0.45],[0.55,0.95,0.35],[0.05,0.35,0.25]],
+    '炽红超新星遗迹':[[1.0,0.15,0.10],[1.0,0.55,0.15],[0.55,0.10,0.05]]
+  };
+
+  function buildFromVector(vec){
+    const has=(vec&&vec.length>=8);
+    const v=has?vec:[0,0,0,0,0,0,0,0];
+    const f=x=>clamp01((clamp(x,-1,1)*0.5)+0.5);
+    const F = { o:f(v[0]), s:f(v[1]), w:f(v[2]), e:f(v[3]), n:f(v[4]), t:f(v[5]), l:f(v[6]), c:f(v[7]) };
+    let hue = 0.583 - 0.505*F.w;
+    const kc = clamp01((F.c-0.5)*1.2);  hue = hue*(1-kc) + 0.125*kc;          // 神圣→金
+    if(F.n<0.4){ const kn=(0.4-F.n); hue = hue*(1-kn*0.7) + 0.78*(kn*0.7); }   // 人工→霓虹紫
+    hue = ((hue%1)+1)%1;
+    let sat = clamp01(0.30 + 0.5*F.e + 0.15*(1-F.s));
+    params.uColA=hsv2rgbArr(hue, sat, 0.95);
+    params.uColB=hsv2rgbArr((hue+0.10)%1, sat*0.9, 0.85);
+    params.uColC=hsv2rgbArr((hue+0.55)%1, 0.65, 1.0);
+    // 结构形态：秩序→螺旋；混沌→不规则；中性→透镜（仅有向量且用户未手动选类型时）
+    if(has && !manualType){
+      if(v[0] > 0.30) setType('spiral');
+      else if(v[0] < -0.30) setType('irregular');
+      else setType('lenticular');
+    }
+    params.uArms  = 2 + Math.round(4*F.w);                  // 暖→多旋臂
+    params.uTwist = 2 + 9*F.t;                              // 未来→紧致
+    params.uRot   = 0.04 + 0.24*F.l;                        // 轻盈→快
+    params.uTurb  = 0.2 + 1.3*F.t;
+    params.uSat   = 0.45 + 0.4*F.e;
+    params.uSize  = 0.8 + 1.6*F.l;                          // 轻盈→展开
+    params.uIncl  = 0.4 + 1.0*F.c;                          // 神圣→正面仰角
+    params.uExposure = 0.7;
+    clampParams(); syncSlidersFromParams(); renderPalette();
+  }
+  function hsv2rgbArr(h,s,v){
+    h=((h%1)+1)%1; let i=Math.floor(h*6), f=h*6-i;
+    let p=v*(1-s), q=v*(1-s*f), t=v*(1-s*(1-f)), r,g,b;
+    switch(i%6){case 0:r=v;g=t;b=p;break;case 1:r=q;g=v;b=p;break;case 2:r=p;g=v;b=t;break;
+      case 3:r=p;g=q;b=v;break;case 4:r=t;g=p;b=v;break;default:r=v;g=p;b=q;break;}
+    return [r,g,b];
+  }
+  function applyStyle(text){
+    text=(text||'').toLowerCase();
+    for(const name in STYLE_PAL){
+      if(text.indexOf(name.replace(/星系/,'').toLowerCase())>=0 || text===name.toLowerCase()){
+        setPalette(STYLE_PAL[name]); return;
+      }
+    }
+    applyDescription(text);
+  }
+  function applyDescription(text){
+    text=(text||'').toLowerCase(); if(!text) return;
+    const hueMap={紫:270,purple:270,紫罗兰:270,violet:270,lavender:270,
+      金:45,gold:45,琥珀:40,橙:28,orange:28,蓝:210,blue:210,青:185,cyan:185,翠:150,绿:135,green:135,
+      粉:330,pink:330,红:0,red:0,玫:340};
+    let fh=null;
+    for(const k in hueMap){ if(text.indexOf(k)>=0){ fh=hueMap[k]/360; break; } }
+    if(fh!==null){
+      const sat=text.indexOf('赛博')>=0||text.indexOf('cyber')>=0?0.95:0.75;
+      setPalette([hsv2rgbArr(fh,sat,0.95), hsv2rgbArr((fh+0.12)%1,sat*0.85,0.85), hsv2rgbArr((fh+0.55)%1,0.65,1.0)]);
+    }
+    if(text.indexOf('神圣')>=0||text.indexOf('divine')>=0) setPalette(STYLE_PAL['神圣金色星系']);
+    if(text.indexOf('蓝紫')>=0) setPalette(STYLE_PAL['蓝紫金色星系']);
+    if(text.indexOf('螺旋')>=0){ params.uTwist*=1.3; setType('spiral'); }
+    if(text.indexOf('椭圆')>=0||text.indexOf('elliptical')>=0){ setType('elliptical'); }
+    if(text.indexOf('透镜')>=0||text.indexOf('lenticular')>=0){ setType('lenticular'); }
+    if(text.indexOf('不规则')>=0||text.indexOf('irregular')>=0){ setType('irregular'); }
+    if(text.indexOf('深邃')>=0||text.indexOf('深')>=0){ params.uTurb*=0.7; params.uSize*=0.85; }
+    if(text.indexOf('快')>=0||text.indexOf('fast')>=0){ params.uRot*=1.8; }
+    if(text.indexOf('慢')>=0||text.indexOf('slow')>=0){ params.uRot*=0.5; }
+    clampParams(); syncSlidersFromParams(); renderPalette();
+  }
+  function setPalette(pal){
+    params.uColA=pal[0]; params.uColB=pal[1]; params.uColC=pal[2];
+    drawStars(rgb2hsv(...params.uColA)[0]);
+  }
+  function highlightPreset(name){
+    document.querySelectorAll('#presets .preset').forEach(p=>{
+      const isDef = p.hasAttribute('data-default');
+      p.classList.toggle('active', !isDef && p.getAttribute('data-d')===name);
+    });
+  }
+  function applyZodiacMorph(sign, skipPalette){
+    const z=ZODIAC[sign]; if(!z) return;
+    setType(z.type);
+    params.uArms  = z.arms;
+    params.uTwist = clamp(params.uTwist*z.twist, 2, 12);
+    params.uRot   = clamp(params.uRot*z.rot, 0.01, 0.35);
+    params.uTurb  = clamp(params.uTurb*z.turb, 0.1, 1.6);
+    params.uSize  = clamp(params.uSize*z.size, 0.4, 2.0);
+    params.uIncl  = clamp(params.uIncl*z.incl, 0.2, 1.4);
+    if(!skipPalette && z.pal && STYLE_PAL[z.pal]){
+      setPalette(STYLE_PAL[z.pal]);
+      activePresetName = z.pal;
+      highlightPreset(z.pal);
+    }
+    clampParams(); syncSlidersFromParams(); renderPalette();
+  }
+  function clampParams(){
+    params.uArms=Math.round(clamp(params.uArms,2,6));
+    params.uTwist=clamp(params.uTwist,2,12);
+    params.uRot=clamp(params.uRot,0.01,0.35);
+    params.uTurb=clamp(params.uTurb,0.1,1.6);
+    params.uSat=clamp(params.uSat,0.1,1.0);
+    params.uSize=clamp(params.uSize,0.4,2.0);
+    params.uIncl=clamp(params.uIncl,0.2,1.4);
+    params.uExposure=clamp(params.uExposure,0.3,1.0);
+  }
+  function renderPalette(){
+    const pal=document.getElementById('palette').children;
+    pal[0].style.background='rgb('+params.uColA.map(x=>Math.round(x*255)).join(',')+')';
+    pal[1].style.background='rgb('+params.uColB.map(x=>Math.round(x*255)).join(',')+')';
+    pal[2].style.background='rgb('+params.uColC.map(x=>Math.round(x*255)).join(',')+')';
+  }
+
+  // ---------- 渲染循环 ----------
+  let running=false, rafId=null, lastTs=null;
+  const t0=performance.now();
+  function frame(now){
+    if(energySave && document.hidden){ running=false; return; }
+    if(lastTs===null) lastTs=now;
+    const t=(now-t0)/1000;
+    const rotT = rotPaused ? pauseT : t;
+    gl.uniform1f(U.uTime, t);
+    gl.uniform1f(U.uRotTime, rotT);
+    gl.uniform1f(U.uRot, params.uRot);
+    gl.uniform1f(U.uArms, params.uArms);
+    gl.uniform1f(U.uTwist, params.uTwist);
+    gl.uniform1f(U.uTurb, params.uTurb);
+    gl.uniform1f(U.uSat, params.uSat);
+    gl.uniform1f(U.uSize, params.uSize);
+    gl.uniform1f(U.uIncl, params.uIncl);
+    gl.uniform1f(U.uSeed, params.uSeed);
+    gl.uniform1f(U.uExposure, params.uExposure);
+    gl.uniform1f(U.uType, params.uType);
+    gl.uniform1f(U.uUserRot, userRot);
+    gl.uniform1f(U.uUserIncl, userIncl);
+    gl.uniform1f(U.uPanX, panX);
+    gl.uniform1f(U.uPanY, panY);
+    gl.uniform3fv(U.uColA, params.uColA);
+    gl.uniform3fv(U.uColB, params.uColB);
+    gl.uniform3fv(U.uColC, params.uColC);
+    gl.clearColor(0.0,0.0,0.0,0.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawArrays(gl.POINTS, 0, COUNT);
+    rafId=requestAnimationFrame(frame);
+  }
+  function startLoop(){
+    if(running) return;
+    if(energySave && document.hidden) return;
+    running=true; lastTs=null;
+    rafId=requestAnimationFrame(frame);
+  }
+  document.addEventListener('visibilitychange', ()=>{ if(document.hidden) return; lastTs=null; startLoop(); });
+
+  // ---------- 鼠标拖拽：旋转 / 倾斜（暂停旋转后仍可拖动） ----------
+  (function attachDrag(){
+    let dragging=false, lx=0, ly=0;
+    canvas.style.cursor='grab';
+    canvas.addEventListener('pointerdown', e=>{
+      dragging=true; lx=e.clientX; ly=e.clientY;
+      try{ canvas.setPointerCapture(e.pointerId); }catch(_){}
+      canvas.style.cursor='grabbing';
+    });
+    canvas.addEventListener('pointermove', e=>{
+      if(!dragging) return;
+      const dx=e.clientX-lx, dy=e.clientY-ly; lx=e.clientX; ly=e.clientY;
+      userRot += dx*0.006;                       // 横向拖拽 → 旋转
+      userIncl = clamp(userIncl + dy*0.006, -1.2, 1.2); // 纵向拖拽 → 倾斜视角
+    });
+    const end=()=>{ dragging=false; canvas.style.cursor='grab'; };
+    canvas.addEventListener('pointerup', end);
+    canvas.addEventListener('pointercancel', end);
+  })();
+
+  // ---------- 星系类型 ----------
+  let activeType='spiral';
+  function setType(name){
+    if(!(name in TYPE_MAP)) return;
+    params.uType = TYPE_MAP[name];
+    activeType = name;
+    document.querySelectorAll('#types .type').forEach(el=>{
+      el.classList.toggle('active', el.getAttribute('data-t')===name);
+    });
+    const isSpiral = name==='spiral';
+    ['pArms','pTwist'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.disabled = !isSpiral;
+      const row = el ? el.closest('.row') : null;
+      if(row) row.style.opacity = isSpiral ? 1 : 0.4;
+    });
+  }
+  document.querySelectorAll('#types .type').forEach(el=>{
+    el.addEventListener('click', ()=>{ manualType=true; setType(el.getAttribute('data-t')); });  // 手动锁定类型
+  });
+
+  // ---------- UI ----------
+  const sliderMap={
+    pArms:['uArms',2,6,'vArms',v=>v.toFixed(0)],
+    pTwist:['uTwist',2,12,'vTwist',v=>v.toFixed(1)],
+    pRot:['uRot',0.01,0.35,'vRot',v=>v.toFixed(3)],
+    pTurb:['uTurb',0.1,1.6,'vTurb',v=>v.toFixed(2)],
+    pGlow:['uSize',0.4,2.0,'vGlow',v=>v.toFixed(2)],
+    pExposure:['uExposure',0.3,1.0,'vExposure',v=>Math.round((v/1.0)*100)+'%']
+  };
+  function syncSlidersFromParams(){
+    setSl('pArms', params.uArms, 2,6, true);
+    setSl('pTwist', params.uTwist, 2,12);
+    setSl('pRot', params.uRot, 0.01,0.35);
+    setSl('pTurb', params.uTurb, 0.1,1.6);
+    setSl('pGlow', params.uSize, 0.4,2.0);
+    setSl('pExposure', params.uExposure, 0.3,1.0);
+  }
+  function setSl(id,val,min,max,isInt){
+    const el=document.getElementById(id); if(!el)return;
+    el.value=Math.round((val-min)/(max-min)*100);
+    const lab=document.getElementById(sliderMap[id][3]);
+    if(lab) lab.textContent = isInt? Math.round(val).toString() : sliderMap[id][4](val);
+  }
+  Object.keys(sliderMap).forEach(id=>{
+    const [key,min,max,labId,fmt]=sliderMap[id];
+    const el=document.getElementById(id);
+    el.addEventListener('input', ()=>{
+      let val=Number(el.value)/100*(max-min)+min;
+      if(id==='pArms') val=Math.round(val);
+      params[key]=val;
+      document.getElementById(labId).textContent=fmt(val);
+    });
+  });
+
+  document.getElementById('panelToggle').addEventListener('click', ()=>{
+    const p=document.getElementById('panel'), b=document.getElementById('panelBody');
+    const c=p.classList.toggle('collapsed');
+    b.classList.toggle('hidden', c);
+    document.getElementById('panelToggle').textContent=c?'展开':'收起';
+  });
+
+  function loadVec(){
+    try{ const raw=localStorage.getItem('aae-aesthetic-vector');
+      if(raw){ const a=JSON.parse(raw); if(Array.isArray(a)&&a.length>=8) return a; } }catch(e){}
+    return null;
+  }
+  let activeZodiac=null;       // 星座 → 形态/形状
+  let activePresetName=null;   // 风格预设 → 颜色
+  let manualType=false;        // 用户手动选过类型后，向量不再覆盖类型
+  let suppressZodiacPalette=false; // 用户手动选预设时，本次允许覆盖星座配色
+  function doGenerate(){
+    const txt=document.getElementById('descInput').value.trim();
+    params.uSeed = Math.random()*1000.0;
+    buildFromVector(loadVec());
+    if(txt) applyStyle(txt);                          // 风格预设关键词 / 自由描述 → 仅改色
+    else if(activePresetName) setPalette(STYLE_PAL[activePresetName]);
+    if(activeZodiac) applyZodiacMorph(activeZodiac, suppressZodiacPalette);  // 星座 → 形态 + 风格预设
+    suppressZodiacPalette=false;
+    clampParams(); syncSlidersFromParams(); renderPalette();
+    setBadge(txt);
+  }
+  document.getElementById('genBtn').addEventListener('click', doGenerate);
+  document.getElementById('regenBtn').addEventListener('click', doGenerate);
+  document.querySelectorAll('.preset').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      if(el.hasAttribute('data-default')){ resetDefault(); return; }
+      activePresetName = el.getAttribute('data-d');
+      document.getElementById('descInput').value = activePresetName;
+      document.querySelectorAll('.preset').forEach(p=>p.classList.remove('active'));
+      el.classList.add('active');
+      suppressZodiacPalette = true;   // 用户手动选择预设 → 优先于星座配色
+      doGenerate();
+    });
+  });
+  document.querySelectorAll('.zodiac').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      activeZodiac=el.getAttribute('data-z');
+      document.querySelectorAll('.zodiac').forEach(z=>z.classList.remove('active'));
+      el.classList.add('active');
+      doGenerate();
+    });
+  });
+  function setBadge(txt){
+    const b=document.getElementById('badge');
+    const fromVec=loadVec()?'基于你的 8 维审美向量':'随机向量（未完成测评）';
+    let mode='';
+    if(activeZodiac) mode=' · 星座形态：'+activeZodiac;
+    if(activePresetName && !txt) mode+=' · 风格：'+activePresetName.replace(/星系/,'');
+    else if(txt) mode+=' · 描述：'+txt;
+    b.innerHTML='🌠 <b>'+fromVec+'</b>'+mode+'<br>'+COUNT.toLocaleString()+' 粒子 · 类型 '+TYPE_CN[activeType]+
+      ' · 旋臂 '+params.uArms+' · 拖拽画面可旋转/倾斜视角（暂停旋转后仍可拖动）。';
+  }
+
+  // 恢复到首次打开该页面时的初始外观
+  function resetDefault(){
+    params.uSeed = Math.random()*1000.0;
+    manualType=false;
+    const vv = loadVec();
+    buildFromVector(vv);
+    activeZodiac = null;
+    document.querySelectorAll('.zodiac').forEach(z=>z.classList.remove('active'));
+    if(vv){
+      activePresetName = null;
+      document.querySelectorAll('.preset').forEach(p=>p.classList.remove('active'));
+    } else {
+      activePresetName = '蓝紫金色星系';
+      setPalette(STYLE_PAL[activePresetName]);
+      document.querySelectorAll('.preset').forEach(p=>p.classList.remove('active'));
+    }
+    const defChip = document.querySelector('#presets .preset[data-default]');
+    if(defChip) defChip.classList.add('active');
+    clampParams(); syncSlidersFromParams(); renderPalette();
+    setBadge('');
+  }
+
+  // 初始化
+  const v=loadVec();
+  params.uSeed = Math.random()*1000.0;
+  if(v) buildFromVector(v);
+  else { buildFromVector(null); activePresetName='蓝紫金色星系'; setPalette(STYLE_PAL[activePresetName]);
+         const def=document.querySelector('.preset[data-d="'+activePresetName+'"]'); if(def) def.classList.add('active'); }
+  syncSlidersFromParams(); renderPalette();
+  startLoop();
+  setBadge('');
+
+  const quizBanner=document.getElementById('quizBanner');
+  document.getElementById('quizClose').addEventListener('click', ()=>quizBanner.classList.add('hidden'));
+  if(!v) quizBanner.classList.remove('hidden');
+})();
+</script>
+</body>
+</html>

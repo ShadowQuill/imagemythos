@@ -1,0 +1,14 @@
+{
+  "name": "ai-aesthetic-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI 审美系统问卷后台：node:sqlite 持久化 + 同源托管前端",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  }
+}

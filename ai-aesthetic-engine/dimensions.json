@@ -1,0 +1,14 @@
+{
+  "version": "v0",
+  "description": "美学语义空间 v0：8 条双极轴，作为所有框架结果映射的目标空间。取值区间 [-1, +1]，正端为 posLabel，负端为 negLabel。",
+  "dimensions": [
+    {"id":"order","posLabel":"秩序","negLabel":"混沌","definition":"结构、规则、可控感 vs 流动、随机、失控感","posExample":"对称构图、整齐排列、几何","negExample":"泼洒、无序拼贴、留白失控","range":[-1,1]},
+    {"id":"soft","posLabel":"柔","negLabel":"锐","definition":"圆润、包容、低攻击性 vs 锋利、边界清晰、有张力","posExample":"曲线、绒面、雾感","negExample":"尖角、金属切面、硬光","range":[-1,1]},
+    {"id":"warm","posLabel":"暖","negLabel":"冷","definition":"亲近、体温感、情绪外放 vs 疏离、理性、冷静","posExample":"橙红、木、烛光","negExample":"蓝灰、石、冷光","range":[-1,1]},
+    {"id":"explicit","posLabel":"显","negLabel":"隐","definition":"张扬、被看见、存在感强 vs 内敛、克制、退后","posExample":"亮色块、大面积、标识","negExample":"低饱和、小面积、去标识","range":[-1,1]},
+    {"id":"natural","posLabel":"自然","negLabel":"人工","definition":"有机、材质本真、源于自然 vs 工业、合成、人造感","posExample":"麻、木、植物","negExample":"塑料、霓虹、合金","range":[-1,1]},
+    {"id":"traditional","posLabel":"传统","negLabel":"未来","definition":"经典、传承、时间沉淀 vs 前瞻、实验、未来感","posExample":"纹样、古籍、陶","negExample":"极简科技、全息、参数化","range":[-1,1]},
+    {"id":"light","posLabel":"轻盈","negLabel":"厚重","definition":"悬浮、通透、少负担 vs 压实、重量、沉稳","posExample":"薄纱、留白、浅色","negExample":"石材、深重、层叠","range":[-1,1]},
+    {"id":"sacred","posLabel":"神圣","negLabel":"世俗","definition":"超越、仪式感、精神性 vs 日常、烟火、世俗感","posExample":"光晕、对称穹顶、静默","negExample":"市井、喧闹、实用","range":[-1,1]}
+  ]
+}

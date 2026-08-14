@@ -1,0 +1,1865 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 审美系统 · 神性测评体验（v0.1 原型）</title>
+<style>
+  :root{
+    --bg:#f6f5f2; --card:#ffffff; --ink:#2b2b2b; --mut:#88807a;
+    --line:#e6e2dc; --acc:#8a6df0; --acc2:#f0a6c0; --pos:#c0392b; --neg:#1f8a70;
+    --sun:#e8a33d; --moon:#9aa7c7; --asc:#5fb98f;
+    --ok:#1f8a70; --warn:#c1440e;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6}
+  .wrap{max-width:760px;margin:0 auto;padding:24px 18px 80px;position:relative;z-index:1}
+  /* 气质可视化：8 维向量驱动的 WebGL 背景 */
+  #vecfx{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;display:block}
+  h1{font-size:22px;margin:0 0 4px}
+  .sub{color:var(--mut);font-size:13px;margin-bottom:18px}
+  .draft{background:#fff7e6;border:1px solid #ffe0a3;color:#8a5a00;
+    padding:10px 12px;border-radius:10px;font-size:13px;margin-bottom:18px}
+  .fw{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:16px 16px 8px;margin-bottom:16px}
+  .fw h2{font-size:16px;margin:0 0 2px;display:flex;align-items:center;gap:8px}
+  .tag{font-size:11px;padding:2px 8px;border-radius:999px;background:#efeafc;color:#6a4fd0}
+  .tag.ind{background:#fdeaf1;color:#c0508a}
+  .tag.dir{background:#eaf5ef;color:#1f8a70}
+  .q{margin:12px 0;padding:10px 12px;background:#fbfaf8;border:1px solid var(--line);border-radius:10px}
+  .q .t{font-size:14px;margin-bottom:8px}
+  .opts{display:flex;flex-direction:column;gap:6px}
+  .opt{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:6px 8px;border-radius:8px}
+  .opt:hover{background:#f1eefb}
+  .opt input{accent-color:var(--acc)}
+  .ctrl{display:flex;flex-wrap:wrap;gap:18px;align-items:center;background:var(--card);
+    border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:16px;position:sticky;top:8px;z-index:5}
+  .ctrl label{font-size:13px;color:var(--mut);display:flex;align-items:center;gap:6px}
+  .ctrl select,.ctrl input[type=number]{font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:8px}
+  button.go{margin-left:auto;background:var(--acc);color:#fff;border:none;border-radius:10px;
+    padding:10px 20px;font-size:15px;cursor:pointer}
+  button.go:hover{filter:brightness(1.05)}
+  #result{display:none;margin-top:8px}
+  .res-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .share-hint{margin-top:8px;padding:9px 12px;border-radius:10px;background:color-mix(in srgb,var(--acc) 9%,transparent);
+    border:1px solid color-mix(in srgb,var(--acc) 22%,transparent);color:var(--ink);font-size:12.5px;line-height:1.7}
+  .res-card h2{margin-top:0}
+  .pill{display:inline-block;background:#f0ecfb;color:#5a3fc0;border-radius:999px;padding:3px 10px;font-size:12px;margin:2px 4px 2px 0}
+  .pills{margin:6px 0 14px}
+  .vec-row{display:grid;grid-template-columns:64px 1fr 64px;align-items:center;gap:8px;margin:7px 0;font-size:12px}
+  .vec-row .neg{color:var(--neg);text-align:right}
+  .vec-row .pos{color:var(--pos)}
+  .bar{position:relative;height:14px;background:#eee;border-radius:7px;overflow:hidden}
+  .bar .mid{position:absolute;left:50%;top:0;bottom:0;width:1px;background:#bbb}
+  .bar .fill{position:absolute;top:0;bottom:0;background:linear-gradient(90deg,#1f8a70,#c0392b)}
+  .exp{white-space:pre-wrap;background:#fbfaf8;border:1px solid var(--line);border-radius:10px;
+    padding:12px;font-size:14px;margin-top:6px}
+  .note{color:var(--mut);font-size:12px;margin-top:14px}
+  code{background:#f1eefb;padding:1px 5px;border-radius:5px;font-size:12px}
+  .gen-box{width:100%;font-size:13px;line-height:1.6;padding:10px;border:1px solid var(--line);border-radius:10px;background:#fbfaf8;color:var(--ink);resize:vertical}
+  .mini{background:#efeafc;color:#5a3fc0;border:1px solid #ddd3f7;border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer}
+  .mini:hover{filter:brightness(1.03)}
+  .mini.btn-green{background:#eaf5ef;color:#1f8a70;border-color:#bfe9cf}
+  .mini.btn-pink{background:#fdeaf1;color:#c0508a;border-color:#f6cdda}
+  .gen-img{max-width:100%;border-radius:12px;margin-top:10px;border:1px solid var(--line)}
+  #genBody h3{color:var(--ink)}
+  /* 生成层功能卡片：出图 / 神性视频 / 3D 雕塑 */
+  .gen-card{margin:16px 0;padding:16px 16px 18px;background:var(--card);border:1px solid var(--line);border-radius:16px;position:relative;overflow:hidden}
+  .gen-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--acc),var(--acc2))}
+  .gen-card .gh{display:flex;align-items:center;gap:10px;margin:0 0 4px}
+  .gen-card .gh .ico{font-size:18px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--acc),var(--acc2));border-radius:10px;flex:0 0 auto}
+  .gen-card .gh h3{font-size:15px;margin:0}
+  .gen-card .gh .step{margin-left:auto;font-size:12px;font-weight:700;color:#fff;background:linear-gradient(135deg,var(--acc),var(--acc2));border-radius:999px;padding:2px 10px;white-space:nowrap}
+  .gen-card .note{margin-top:6px}
+  .gen-flow{display:flex;align-items:center;gap:8px;margin:6px 0 2px;color:var(--mut);font-size:12px;flex-wrap:wrap}
+  .gen-flow b{color:var(--acc);font-weight:700}
+
+  /* ===== 占星三要素权重 · 实时联动面板 ===== */
+  .astro-card{background:linear-gradient(180deg,#fbf9ff,#ffffff);
+    border:1px solid #e7e0fb;border-radius:14px;padding:14px 16px 16px;margin-bottom:16px}
+  .ac-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .ac-head h2{margin:0;font-size:15px;display:flex;align-items:center;gap:6px}
+  .ac-head .live{font-size:11px;color:#3a9d6b;background:#e9f7ef;border:1px solid #bfe9cf;
+    border-radius:999px;padding:2px 8px}
+  .asp-preset{font-size:13px;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:#fff}
+  .ac-sub{color:var(--mut);font-size:12px;margin:6px 0 12px}
+  .asp-rows{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+  .asp-row{display:grid;grid-template-columns:60px 1fr 64px 1fr;align-items:center;gap:10px}
+  .asp-name{font-size:13px;font-weight:600;display:flex;align-items:center;gap:4px}
+  .asp-range{accent-color:var(--acc);width:100%}
+  .asp-num{width:60px;font-size:13px;padding:3px 6px;border:1px solid var(--line);border-radius:8px}
+  .asp-sign{font-size:12px;color:var(--mut);text-align:right}
+  .asp-sign b{color:var(--ink)}
+  .asp-prop{background:#faf9fd;border:1px solid #ece7fb;border-radius:10px;padding:10px 12px}
+  .prop-label{font-size:12px;color:var(--mut);margin-bottom:6px}
+  .prop-bar{display:flex;height:18px;border-radius:9px;overflow:hidden;background:#eee}
+  .prop-seg{display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;
+    min-width:2px;transition:width .12s ease;white-space:nowrap}
+  .prop-zero{font-size:12px;color:var(--mut);display:flex;align-items:center;justify-content:center;width:100%}
+  .prop-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--mut)}
+  .prop-legend .lg{display:flex;align-items:center;gap:5px}
+  .prop-legend .lg i{width:10px;height:10px;border-radius:3px;display:inline-block}
+
+  /* ===== 账户：登录 / 注册 ===== */
+  .authbar{display:flex;align-items:center;gap:10px;justify-content:flex-end;font-size:13px;color:var(--mut);min-height:28px;margin:2px 0 14px}
+  .authbar .mini{margin:0}
+  /* 登录后账户胶囊卡 */
+  .auth-card{display:inline-flex;align-items:center;gap:10px;background:color-mix(in srgb,var(--acc) 10%,transparent);
+    border:1px solid var(--line);border-radius:999px;padding:5px 8px 5px 6px;max-width:100%;box-sizing:border-box}
+  .auth-ava{flex:none;width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));
+    color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px}
+  .auth-who{display:inline-flex;align-items:center;gap:8px;min-width:0}
+  .auth-who #authEmail{color:var(--ink);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px}
+  .auth-badge{flex:none;font-size:11px;font-weight:600;color:#fff;background:linear-gradient(135deg,var(--acc),var(--acc2));
+    border-radius:999px;padding:2px 9px;white-space:nowrap}
+  .auth-quota{flex:none;font-size:12px;color:var(--mut);white-space:nowrap}
+  .auth-quota.inf{color:var(--ok,#3fbf8f);font-weight:600}
+  .auth-card .mini{margin:0 0 0 2px}
+  .modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:50}
+  .modal-mask.show{display:flex}
+  .modal{background:#fff;border-radius:14px;padding:20px 22px;width:320px;max-width:92vw;box-shadow:0 10px 40px rgba(0,0,0,.18)}
+  .modal h3{margin:0 0 12px;font-size:16px}
+  .modal .tabs{display:flex;gap:8px;margin-bottom:12px}
+  .modal .tabs button{flex:1;background:#f1eefb;border:1px solid var(--line);border-radius:8px;padding:6px;cursor:pointer;font-size:13px}
+  .modal .tabs button.active{background:var(--acc);color:#fff;border-color:var(--acc)}
+  .modal label{display:block;font-size:12px;color:var(--mut);margin:10px 0 4px}
+  .modal input{width:100%;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:8px}
+  .modal .err{color:#c0392b;font-size:12px;min-height:16px;margin-top:8px}
+  .modal .actions{margin-top:14px;display:flex;gap:8px}
+  .auth-state{font-size:11px;color:var(--mut)}
+  /* 测评记录时间线 */
+  .modal.wide{width:640px}
+  .hist-list{max-height:54vh;overflow:auto;margin:4px -4px 0;padding:0 4px}
+  .hist-item{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fcfbff;transition:box-shadow .15s,transform .15s}
+  .hist-item:hover{box-shadow:0 5px 16px rgba(138,109,240,.10);transform:translateY(-1px)}
+  .hist-item.sel{border-color:var(--acc);background:#f3efff;box-shadow:0 0 0 2px rgba(138,109,240,.18)}
+  .hist-item .cb{margin-top:4px;flex:none;width:16px;height:16px;accent-color:var(--acc);cursor:pointer}
+  .hist-main{flex:1;min-width:0}
+  .hist-top{display:flex;align-items:center;gap:8px}
+  .hist-title{font-size:14.5px;font-weight:600;color:var(--ink);word-break:break-all;line-height:1.35}
+  .hist-idx{font-size:11px;color:var(--mut);background:#efeaf9;border-radius:6px;padding:1px 6px;flex:none}
+  .tag.tag-new{background:linear-gradient(135deg,#8a6df0,#f0a6c0);color:#fff;border:none;font-weight:600;padding:2px 9px}
+  .hist-meta{font-size:11.5px;color:var(--mut);margin-top:5px}
+  .hist-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .chip{font-size:11px;padding:2px 9px;border-radius:999px;background:#efeafc;color:#6a4fd0;border:1px solid #e3daf7}
+  .chip-mood{background:#fdeaf1;color:#c0508a;border-color:#f6cdda}
+  .hist-ops{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  .hist-ops .mini{margin:0;font-size:11px;padding:3px 9px}
+  .hist-empty{color:var(--mut);font-size:13px;padding:24px 4px;text-align:center;line-height:1.7}
+  .cmp-box{border-top:1px dashed var(--line);margin-top:10px;padding-top:10px}
+  .cmp-row{display:grid;grid-template-columns:96px 1fr 62px;gap:8px;align-items:center;font-size:11px;margin-bottom:5px}
+  .cmp-bar{height:8px;background:#efeaf9;border-radius:5px;position:relative;overflow:hidden}
+  .cmp-bar i{position:absolute;top:0;height:100%;border-radius:5px}
+  .cmp-bar i.a{background:#b9a6e8}
+  .cmp-bar i.b{background:var(--acc);opacity:.85}
+  .cmp-delta{text-align:right;font-variant-numeric:tabular-nums}
+  .cmp-delta.up{color:#2e7d5b}.cmp-delta.down{color:#c0392b}
+
+  /* ===== 移动端适配（窄屏）===== */
+  @media (max-width:640px){
+    .wrap{padding:16px 12px 64px}
+    h1{font-size:18px}
+    .draft{font-size:12px}
+    .ctrl{position:static;top:auto;padding:12px;gap:10px 14px}
+    button.go{margin-left:0;width:100%}
+    .asp-row{grid-template-columns:1fr;gap:4px;padding-bottom:8px;border-bottom:1px dashed var(--line)}
+    .asp-row:last-child{border-bottom:none}
+    .asp-name{margin-bottom:2px}
+    .asp-sign{text-align:left}
+    .asp-num{width:90px}
+    .vec-row{grid-template-columns:48px 1fr 48px;font-size:11px;gap:6px}
+    .res-card{padding:14px}
+    .res-card h2{font-size:15px}
+    .modal.wide{width:auto}
+    .hist-item{flex-direction:column}
+    .cmp-row{grid-template-columns:74px 1fr 46px;font-size:10px}
+    .gen-box{font-size:13px}
+    #genBody h3{font-size:14px}
+    .authbar{justify-content:space-between;gap:8px;flex-wrap:wrap}
+  }
+  [data-theme="dark"]{
+    color-scheme:dark;
+    --bg:#15141a; --card:#211f29; --ink:#ece9f2; --mut:#a8a0b8;
+    --line:#322f3c; --acc:#9a86ff; --acc2:#f0a6c0; --pos:#e06a5a; --neg:#4cc9a0;
+    --sun:#e8a33d; --moon:#9aa7c7; --asc:#5fb98f;
+    --ok:#5fcf9a; --warn:#e8743b;
+  }
+  [data-theme="dark"] .q{background:#20242f;border-color:var(--line)}
+  [data-theme="dark"] .draft{background:#2a2410;border-color:#5a4a10;color:#f0d28a}
+  [data-theme="dark"] .opt:hover{background:#26232f}
+  [data-theme="dark"] .fw,[data-theme="dark"] .res-card{background:#211f29}
+  [data-theme="dark"] .ctrl{background:#1b1a22;border-color:var(--line)}
+  [data-theme="dark"] .pill,[data-theme="dark"] .tag{background:#2a2540;color:#c3b6ff}
+  [data-theme="dark"] .tag.ind{background:#3a2330;color:#ff9ec4}
+  [data-theme="dark"] .tag.dir{background:#1f3a30;color:#6fe0bd}
+  [data-theme="dark"] .exp,[data-theme="dark"] .gen-box{background:#1b1a22}
+  [data-theme="dark"] .astro-card{background:linear-gradient(180deg,#241f33,#1c1a26);border-color:#3a3550}
+  [data-theme="dark"] .asp-preset,[data-theme="dark"] .asp-prop{background:#2a2540;border-color:#3a3550}
+  [data-theme="dark"] .prop-bar,[data-theme="dark"] .bar,[data-theme="dark"] .cmp-bar{background:#2a2740}
+  [data-theme="dark"] .bar .mid{background:#4a4660}
+  [data-theme="dark"] .modal{background:#211f29;color:var(--ink)}
+  [data-theme="dark"] .modal .tabs button{background:#2a2540}
+  [data-theme="dark"] .hist-item{background:#1f1d28}
+  [data-theme="dark"] .hist-item.sel{background:#2a2540;border-color:var(--acc)}
+  [data-theme="dark"] .hist-idx{background:#2a2540}
+  [data-theme="dark"] .chip{background:#2a2540;color:#c3b6ff;border-color:#34294e}
+  [data-theme="dark"] .chip-mood{background:#3a2330;color:#ff9ec4;border-color:#5a3a48}
+  [data-theme="dark"] code{background:#2a2540;color:#d8d2ec}
+  [data-theme="dark"] .ac-head .live{background:#1f3a30;border-color:#3a6b54;color:#7fe3b5}
+  [data-theme="dark"] .login-card{background:#211f29}
+  [data-theme="dark"] .modal input,[data-theme="dark"] .ctrl select,[data-theme="dark"] .ctrl input,[data-theme="dark"] .asp-num{background:#1b1a22;color:var(--ink);border-color:var(--line)}
+  [data-theme="dark"] .mini.btn-green{background:#163326;color:#6fe0bd;border-color:#2f5e4a}
+  [data-theme="dark"] .mini.btn-pink{background:#3a2330;color:#ff9ec4;border-color:#5a3a48}
+  /* 暗色下 3D 雕塑查看器改用深色柔光底，避免白底刺眼（与 share.html 对齐） */
+  [data-theme="dark"] .model3d{background:radial-gradient(120% 120% at 50% 0%,#241f33 0%,#1b1a22 58%,#2a1f29 100%)}
+  .theme-btn{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:6px 11px;cursor:pointer;font-size:13px;transition:.18s}
+  .theme-btn:hover{border-color:var(--acc)}
+  .home-btn{background:var(--card);border:1px solid var(--line);color:var(--ink);border-radius:9px;padding:6px 11px;cursor:pointer;font-size:13px;transition:.18s;text-decoration:none;display:inline-flex;align-items:center;gap:5px}
+  .home-btn:hover{border-color:var(--acc);color:var(--acc)}
+  .themebar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  /* 3D 神性雕塑查看器：渐变柔光底，与站点主色呼应；model-viewer 按需懒加载 */
+  .model3d{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--line);
+    height:360px;margin-top:8px;background:radial-gradient(120% 120% at 50% 0%,#f0ecfb 0%,#f6f5f2 58%,#fdf0f5 100%)}
+  .model3d model-viewer{width:100%;height:100%;--poster-color:transparent}
+  .model3d .loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:13px;pointer-events:none}
+  @media (max-width:640px){ .model3d{height:300px} }
+</style>
+</head>
+<body>
+<canvas id="vecfx"></canvas>
+<div class="wrap">
+  <div class="themebar">
+    <a href="/" class="home-btn">← 返回首页</a>
+    <button id="themeToggle" class="theme-btn">🌙 切暗色</button>
+  </div>
+  <h1>AI 审美系统 · 神性测评体验</h1>
+  <div class="sub">v0.1 原型 · 4 框架自研测评 → 主+次结果 → 统一美学向量（主定调 · 次点缀）</div>
+
+  <div class="authbar" id="authbar">
+    <span id="authGuest"><span id="trialInfo" class="auth-state" style="display:none;margin-right:6px"></span><button class="mini" id="openAuth">登录 / 注册</button></span>
+    <span id="authUser" class="auth-card" style="display:none">
+      <span class="auth-ava">👤</span>
+      <span class="auth-who"><span id="authEmail"></span><span id="authRole" class="auth-badge" style="display:none"></span></span>
+      <span id="authQuota" class="auth-quota"></span>
+      <a id="adminLink" href="admin.html" class="mini" style="display:none;text-decoration:none;margin-left:2px">管理后台</a>
+      <button class="mini" id="logoutBtn">退出</button>
+    </span>
+  </div>
+
+  <div class="draft">
+    ⚠️ <b>原型提示</b>：九型·神圣理念题项为「间接测量」<b>草稿（DRAFT，需九型研究者盲审）</b>，
+    荣格 / 占星 / 大五亦为 v0.1 样题。本页仅用于内部体验与逻辑验证，请勿对外发布。
+  </div>
+
+  <div class="ctrl">
+    <label>建模维度（可多选）：
+      <select id="fwSel" multiple size="1" style="display:none"></select>
+    </label>
+    <span id="fwToggles" style="display:flex;gap:14px;flex-wrap:wrap"></span>
+    <button class="go" id="calc">计算我的美学向量</button>
+  </div>
+
+  <!-- 占星三要素权重 · 实时联动 -->
+  <div class="astro-card">
+    <div class="ac-head">
+      <h2>☉ 占星三要素权重 <span class="live">实时联动</span></h2>
+      <select id="aspPreset" class="asp-preset" aria-label="权重预设">
+        <option value="default">预设：太阳主导（默认）</option>
+        <option value="balanced">日月升均衡</option>
+        <option value="sun">太阳主导</option>
+        <option value="asc">上升强调</option>
+        <option value="moon">月亮强调</option>
+        <option value="custom">自定义</option>
+      </select>
+    </div>
+    <div class="ac-sub">拖动滑杆即时改变「太阳 / 月亮 / 上升」在最终美学向量中的占比，结果随权重实时刷新（无需再点计算）。</div>
+    <div class="asp-rows" id="aspRows"></div>
+    <div class="asp-prop">
+      <div class="prop-label">归一化占比（决定各要素对美学向量的贡献）</div>
+      <div class="prop-bar" id="aspPropBar"></div>
+      <div class="prop-legend" id="aspPropLegend"></div>
+    </div>
+  </div>
+
+  <div class="importbar" style="margin:14px 0;padding:10px 12px;background:var(--card);border:1px solid var(--line);border-radius:10px">
+    <b style="font-size:13px">导入自评数据</b>
+    <label class="mini" style="margin:0 6px">选择 JSON / CSV</label>
+    <input type="file" id="importFile" accept=".json,.csv,application/json,text/csv">
+    <button class="mini" id="importBtn">导入并填充</button>
+    <span id="importMsg" class="note"></span>
+  </div>
+  <div id="forms"></div>
+
+  <div id="result">
+    <div class="res-card">
+      <h2>① 各框架主 / 次结果</h2>
+      <div class="pills" id="resPills"></div>
+      <h2>② 统一美学向量（8 轴，[-1,1]）</h2>
+      <div id="vecBars"></div>
+      <h2>③ 为什么这样彰显你的气质</h2>
+      <div class="exp" id="expText"></div>
+      <div class="note" id="rawVec"></div>
+      <div style="margin-top:14px">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:8px">生成我的神性宇宙（依据你的 8 维审美向量定制）：</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="mini btn-pink" id="toNebula">🌌 神性星云</button>
+          <button class="mini btn-pink" id="toFlow">🌊 神性流场</button>
+          <button class="mini btn-pink" id="toGalaxy">🌠 神性星系</button>
+        </div>
+      </div>
+
+      <!-- 导出测评数据 -->
+      <div id="exportBar" style="margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)">
+        <h2 style="font-size:14px;margin:0 0 10px">导出测评数据</h2>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <button class="mini" id="expJson">导出 JSON（可再导入）</button>
+          <button class="mini" id="expMd">导出 Markdown 报告</button>
+          <button class="mini btn-green" id="expHtml">导出美化报告（可存 PDF）</button>
+        </div>
+        <div style="margin-top:14px">
+          <b style="font-size:13px">保存与分享</b>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+            <button class="mini" id="saveProfile">保存到云端</button>
+            <button class="mini" id="loadProfile">读取最近一次</button>
+            <button class="mini" id="histBtn">我的测评记录</button>
+          </div>
+        </div>
+      </div>
+      <div class="note" style="margin-top:8px">
+        <b>保存到云端</b>：登录后长期存于云端、可换设备读取；未登录则暂存于本机（绑定当前浏览器，换浏览器会丢失）。<br>
+        <b>读取最近一次</b>：载入你<b>最后一次保存到云端</b>的测评并重新计算（读的是云端最近数据，不是临时草稿）。<br>
+        <b>我的测评记录</b>：列出你<b>所有已保存</b>的测评，需先「保存」至少一次，记录才会出现在这里。
+      </div>
+
+      <!-- ④ 整体美学方案（生成层 MVP） -->
+      <div id="genSection" style="display:none;margin-top:18px;border-top:1px dashed var(--line);padding-top:14px">
+        <h2>④ 整体美学方案 <span class="tag dir">生成层 MVP</span></h2>
+        <div class="note" style="margin-top:0">由 8 维美学向量 + 主/次型 motif 融合生成的「一套气质、两种表达」。映射 IP 本地确定性产出；出图经后端代理（需配置密钥）。单次出图会融合上方「影像提示词」与「空间 / 视觉风格」，生成一张同时体现两者的图。</div>
+        <button class="go" id="genBtn" style="margin:10px 0">生成整体方案</button>
+        <div id="genBody" style="display:none">
+          <h3 style="font-size:14px;margin:14px 0 6px">影像文生图提示词</h3>
+          <textarea id="genPrompt" class="gen-box" readonly rows="5"></textarea>
+          <div style="margin:6px 0"><button class="mini" id="copyPrompt">复制提示词</button></div>
+          <h3 style="font-size:14px;margin:14px 0 6px">空间 / 视觉风格方案</h3>
+          <div class="exp" id="genSpace"></div>
+          <div class="note">调色走向：<span id="genPalette"></span> ｜ 情绪基调：<span id="genMood"></span></div>
+          <!-- ① 出图卡片 -->
+          <div class="gen-card">
+            <div class="gh"><span class="ico">🖼️</span><h3>出图 · 神性意象 <span class="tag dir">后端代理</span></h3><span class="step">1 / 3</span></div>
+            <div class="note" style="margin-top:0">下方按钮将融合「影像提示词」+「空间 / 视觉风格」，生成一张同时体现两者气质之图。</div>
+            <div style="margin:10px 0 4px">出图通道：
+              <select id="genProvider">
+                <option value="">默认（后端 IMG_PROVIDER：内置混元生图）</option>
+                <option value="buddycloudimg">内置技能（腾讯混元生图）</option>
+                <option value="openai">OpenAI (gpt-image-1 / dall-e-3)</option>
+                <option value="jimeng">即梦 AI（火山视觉 CV · 图片生成4.0）</option>
+              </select>
+            </div>
+            <div class="gen-flow">🖼️ 出图 → 🎬 神性视频 → 🗿 3D 雕塑（依次生成，互相衔接）</div>
+            <button class="mini" id="reqImg">请求后端出图</button>
+            <button class="mini" id="dlImg" style="display:none;margin-left:8px">下载图片</button>
+            <span id="genQuota" style="margin-left:10px;color:var(--mut);font-size:12px"></span>
+            <div id="genImgMsg" class="note" style="margin-top:8px"></div>
+            <img id="genImg" class="gen-img" alt="生成结果" style="display:none">
+          </div>
+
+          <!-- ② 神性视频卡片 -->
+          <div class="gen-card">
+            <div class="gh"><span class="ico">🎬</span><h3>神性视频 <span class="tag dir">混元生视频</span></h3><span class="step">2 / 3</span></div>
+            <div class="note" style="margin-top:0">把审美气质变成「流光神性」短片（需登录）。描述你想要的气质画面，一键生成文生视频。</div>
+
+            <textarea id="vidPrompt" class="gen-box" rows="3" placeholder="描述你想要的流光神性短片，如：一尊半透明水晶神性雕塑在紫色星尘中缓缓旋转，柔光流淌"></textarea>
+            <div style="margin-top:8px">
+              <button class="mini" id="vidGenBtn">生成文生视频</button>
+              <span id="vidGenMsg" class="note" style="margin-left:8px"></span>
+            </div>
+            <div id="vidGenWrap" style="margin-top:10px"></div>
+            <div class="note" style="margin-top:8px;color:var(--mut)">生成后可点页面底部「生成分享卡片」，把本段神性视频随测评气质一并记录、对外分享。</div>
+          </div>
+
+          <!-- ③ 3D 雕塑卡片 -->
+          <div class="gen-card">
+            <div class="gh"><span class="ico">🗿</span><h3>3D 神性雕塑 <span class="tag dir">混元生3D</span></h3><span class="step">3 / 3</span></div>
+            <div class="note" style="margin-top:0">基于你的 8 维美学向量，调用腾讯混元生3D 生成一件可旋转查看的气质雕塑（文生3D）。生成约需 1–5 分钟，请耐心等待。</div>
+            <button class="mini" id="gen3dBtn">生成我的神性雕塑</button>
+            <span id="gen3dMsg" class="note" style="margin-left:8px"></span>
+            <div id="gen3dWrap" style="margin-top:10px"></div>
+            <div class="note" style="margin-top:8px;color:var(--mut)">生成后可点页面底部「生成分享卡片」，把这件 3D 雕塑随测评气质一并记录、对外分享。</div>
+          </div>
+
+          <h3 style="font-size:14px;margin:20px 0 6px">生活应用 <span class="tag dir">M3 场景引擎</span></h3>
+          <div class="note" style="margin-top:0">把同一份审美画像翻译成可落地的生活方案。点击下方按钮在新页面查看详细建议（含一键出图）。</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+            <button class="mini" data-scene="house">🏠 房屋布局</button>
+            <button class="mini" data-scene="outfit">👗 穿搭衣橱</button>
+            <button class="mini" data-scene="quotes">💬 思考语录</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 生成分享卡片（页面底部） -->
+      <div id="shareFoot" style="margin-top:18px;border-top:1px dashed var(--line);padding-top:14px">
+        <div class="share-hint">提示：先依次 🖼️ 生成出图 → 🎬 生成神性视频 → 🗿 生成 3D 雕塑，再点下方「生成分享卡片」，即可把三者一并记录进同一张公开分享卡，分享给他人查看。</div>
+        <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <button class="mini btn-pink" id="shareBtn">生成分享卡片（公开链接）</button>
+          <span id="expMsg" class="note"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 登录 / 注册 / 忘记密码 弹窗 -->
+<div class="modal-mask" id="authMask">
+  <div class="modal">
+    <h3>账户 · 保存你的美学测评</h3>
+    <div class="tabs">
+      <button id="tabLogin" class="active">登录</button>
+      <button id="tabReg">注册</button>
+      <button id="tabForgot">忘记密码</button>
+    </div>
+    <label>邮箱</label>
+    <input id="authEmailInput" type="email" placeholder="you@example.com" autocomplete="username">
+    <!-- 登录 / 注册 用：密码 -->
+    <div id="authPwWrap">
+      <label>密码（至少 6 位）</label>
+      <input id="authPwInput" type="password" placeholder="••••••" autocomplete="current-password">
+    </div>
+    <!-- 忘记密码 用：邮箱验证码 / 离线重置码 -->
+    <div id="authForgotWrap" style="display:none">
+      <button class="mini" id="authSendCode" type="button" style="width:100%;margin-top:4px">发送验证码到邮箱</button>
+      <label style="margin-top:10px">验证码（6 位，已发至邮箱）</label>
+      <input id="authCodeInput" type="text" inputmode="numeric" placeholder="邮箱收到的 6 位验证码" autocomplete="one-time-code">
+      <label style="margin-top:8px">新密码（至少 6 位）</label>
+      <input id="authNewPwInput" type="password" placeholder="••••••" autocomplete="new-password">
+      <div class="note" style="margin-top:10px">没有收到邮件？<a href="#" id="authUseReset" style="color:var(--acc)">改用重置码重置</a></div>
+      <div id="authResetWrap" style="display:none">
+        <label style="margin-top:8px">重置码（在 backend/.env 的 RESET_CODE）</label>
+        <input id="authResetCodeInput" type="text" placeholder="重置码" autocomplete="off">
+      </div>
+    </div>
+    <div class="err" id="authErr"></div>
+    <div class="actions">
+      <button class="go" id="authSubmit" style="margin:0;padding:8px 18px;font-size:14px">登录</button>
+      <button class="mini" id="authCancel" style="margin-left:auto">取消</button>
+    </div>
+    <div class="note" style="margin-top:12px" id="authNote">未登录也能<b>暂存测评到本机</b>；登录后本机暂存的测评会自动归入你的账户，并可换设备读取、云端长期保存。</div>
+  </div>
+</div>
+
+<!-- 我的测评记录（时间线） -->
+<div class="modal-mask" id="histMask">
+  <div class="modal wide">
+    <h3>我的测评记录 <span class="note" id="histCount" style="font-weight:400"></span></h3>
+    <div class="note" style="margin-top:0">每次保存都会追加一条，不会覆盖旧记录；记录需先「保存」才会出现在这里。勾选任意两条可对比 8 轴向量的变化。</div>
+    <div class="hist-list" id="histList"></div>
+    <div class="cmp-box" id="cmpBox" style="display:none">
+      <b style="font-size:13px">向量对比</b>
+      <div class="note" style="margin-top:2px" id="cmpHead"></div>
+      <div id="cmpBars" style="margin-top:8px"></div>
+    </div>
+    <div class="actions">
+      <span class="note" id="histMsg" style="margin:0"></span>
+      <button class="mini" id="histClose" style="margin-left:auto">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  const DATA = window.AESTHETIC_DATA;
+  const ORDER = ['enneagram','jung','astro','bigfive'];
+  const answers = {};   // itemId -> optionIndex
+  const weights = {};   // fwId -> number
+  const enabled = {};   // fwId -> bool
+
+  const measTag = { indirect:{cls:'ind',txt:'间接测量'}, direct:{cls:'dir',txt:'直接/常规'}, scale:{cls:'dir',txt:'量表'} };
+
+  // 占星三要素元数据与预设
+  const ASP_META = {
+    sun:  { name:'太阳', color:'var(--sun)',  icon:'☀' },
+    moon: { name:'月亮', color:'var(--moon)', icon:'☽' },
+    asc:  { name:'上升', color:'var(--asc)',  icon:'↑' }
+  };
+  const ASP_ORDER = ['sun','moon','asc'];
+  const PRESETS = {
+    default:  { sun:1.0, moon:0.6, asc:0.4 },
+    balanced: { sun:1.0, moon:1.0, asc:1.0 },
+    sun:      { sun:1.6, moon:0.4, asc:0.3 },
+    asc:      { sun:0.5, moon:0.5, asc:1.4 },
+    moon:     { sun:0.5, moon:1.4, asc:0.6 }
+  };
+
+  // 运行时占星权重（可直接驱动引擎 mapToVector 的归一化加权平均）
+  const aspectWeights = { astro: Object.assign({}, DATA.bank.frameworks.astro.aspectWeights || { sun:1, moon:0.6, asc:0.4 }) };
+
+  function resultLabel(fwId, key){
+    if(!key) return '—';
+    if(fwId==='astro'){
+      const m = key.match(/^(sun|moon|asc)_(.+)$/);
+      if(m){
+        const asp = {sun:'太阳',moon:'月亮',asc:'上升'}[m[1]];
+        const sg = DATA.bank.signs[m[2]];
+        return asp+' · '+(sg?sg.label:m[2]);
+      }
+    }
+    const fw = DATA.bank.frameworks[fwId];
+    if(fw.results && fw.results[key]) return fw.results[key].label;
+    return key;
+  }
+
+  // ---------- 顶部框架开关 ----------
+  const tog = document.getElementById('fwToggles');
+  ORDER.forEach(fwId=>{
+    const fw = DATA.bank.frameworks[fwId];
+    enabled[fwId] = true; weights[fwId] = 1;
+    const lab = document.createElement('label');
+    lab.style.fontSize='13px';
+    lab.innerHTML = `<input type="checkbox" data-fw="${fwId}" checked> ${fw.name}`;
+    const w = document.createElement('input');
+    w.type='number'; w.min='0'; w.max='3'; w.step='0.5'; w.value='1'; w.style.width='46px';
+    w.setAttribute('data-w',fwId);
+    lab.appendChild(document.createTextNode(' 权重'));
+    lab.appendChild(w);
+    tog.appendChild(lab);
+  });
+  tog.addEventListener('change', e=>{
+    if(e.target.dataset.fw){ enabled[e.target.dataset.fw] = e.target.checked; if(hasResult) liveMap(); }
+  });
+  tog.addEventListener('input', e=>{
+    if(e.target.dataset.w!==undefined){ weights[e.target.dataset.w] = parseFloat(e.target.value)||0; liveMap(); }
+  });
+
+  // ---------- 占星三要素权重面板（滑杆 + 预设 + 占比条）----------
+  const aspRows = document.getElementById('aspRows');
+  const presetSel = document.getElementById('aspPreset');
+  ASP_ORDER.forEach(a=>{
+    const meta = ASP_META[a];
+    const row = document.createElement('div');
+    row.className='asp-row';
+    row.innerHTML =
+      `<span class="asp-name">${meta.icon} ${meta.name}</span>`+
+      `<input type="range" class="asp-range" data-asp="${a}" min="0" max="3" step="0.05" value="${aspectWeights.astro[a]}">`+
+      `<input type="number" class="asp-num" data-asp="${a}" min="0" max="3" step="0.05" value="${aspectWeights.astro[a]}">`+
+      `<span class="asp-sign" data-sign="${a}"></span>`;
+    aspRows.appendChild(row);
+  });
+
+  function syncAspInputs(){
+    ASP_ORDER.forEach(a=>{
+      aspRows.querySelector(`.asp-range[data-asp="${a}"]`).value = aspectWeights.astro[a];
+      aspRows.querySelector(`.asp-num[data-asp="${a}"]`).value = aspectWeights.astro[a];
+    });
+  }
+
+  function updatePropBar(){
+    const aw = aspectWeights.astro;
+    const sum = ASP_ORDER.reduce((s,k)=>s+(aw[k]||0),0);
+    const bar = document.getElementById('aspPropBar');
+    const legend = document.getElementById('aspPropLegend');
+    if(sum<=0){
+      bar.innerHTML = '<div class="prop-zero">权重全为 0，占星对结果无贡献</div>';
+      legend.innerHTML = '';
+      return;
+    }
+    bar.innerHTML = ASP_ORDER.map(k=>{
+      const pct = (aw[k]||0)/sum*100;
+      const meta = ASP_META[k];
+      return `<div class="prop-seg" style="width:${pct}%;background:${meta.color}" title="${meta.name} ${pct.toFixed(0)}%">${pct>=14?meta.name:''}</div>`;
+    }).join('');
+    legend.innerHTML = ASP_ORDER.map(k=>{
+      const pct = ((aw[k]||0)/sum*100).toFixed(0);
+      return `<span class="lg"><i style="background:${ASP_META[k].color}"></i>${ASP_META[k].name} ${pct}%</span>`;
+    }).join('');
+  }
+
+  function presetOf(aw){
+    for(const key in PRESETS){
+      const p = PRESETS[key];
+      if(Math.abs((p.sun||0)-(aw.sun||0))<1e-6 && Math.abs((p.moon||0)-(aw.moon||0))<1e-6 && Math.abs((p.asc||0)-(aw.asc||0))<1e-6) return key;
+    }
+    return 'custom';
+  }
+
+  // 任一滑杆/数字输入变化
+  aspRows.addEventListener('input', e=>{
+    const a = e.target.dataset.asp;
+    if(!a) return;
+    const v = parseFloat(e.target.value)||0;
+    aspectWeights.astro[a] = v;
+    // 同步对应的滑杆/数字框
+    if(e.target.classList.contains('asp-range')) aspRows.querySelector(`.asp-num[data-asp="${a}"]`).value = v;
+    else aspRows.querySelector(`.asp-range[data-asp="${a}"]`).value = v;
+    presetSel.value = presetOf(aspectWeights.astro);
+    updatePropBar();
+    liveMap();
+  });
+  // 预设切换
+  presetSel.addEventListener('change', e=>{
+    const key = e.target.value;
+    if(key!=='custom' && PRESETS[key]){
+      Object.assign(aspectWeights.astro, PRESETS[key]);
+      syncAspInputs();
+      updatePropBar();
+      liveMap();
+    }
+  });
+
+  // ---------- 渲染题目（选项随机化：每会话打乱显示顺序；radio.value 固定为原始下标，引擎计分零改动）----------
+  const _shufCache = {};
+  function shufOrder(n, key){
+    if(_shufCache[key]) return _shufCache[key];
+    const a = Array.from({length:n}, (_,i)=>i);
+    for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+    return (_shufCache[key]=a);
+  }
+  const forms = document.getElementById('forms');
+  ORDER.forEach(fwId=>{
+    const fw = DATA.bank.frameworks[fwId];
+    const sec = document.createElement('div'); sec.className='fw';
+    const tag = measTag[fw.measurement]||{cls:'',txt:fw.measurement};
+    sec.innerHTML = `<h2>${fw.name} <span class="tag ${tag.cls}">${tag.txt}</span></h2>`;
+    if(fwId==='enneagram') sec.innerHTML += `<div class="note">通过情境/投射/图像题间接探测「反应质地」，不直接问「你是否认同某理念」。选项顺序每会话随机化（评分按原始下标，不受影响）。</div>`;
+    fw.items.forEach(it=>{
+      const q = document.createElement('div'); q.className='q';
+      const order = shufOrder(it.options.length, fwId+':'+it.id);
+      const opts = order.map(idx=>
+        `<label class="opt"><input type="radio" name="${it.id}" value="${idx}"> ${it.options[idx].text}</label>`).join('');
+      q.innerHTML = `<div class="t">${it.text}</div><div class="opts">${opts}</div>`;
+      sec.appendChild(q);
+    });
+    forms.appendChild(sec);
+  });
+
+  forms.addEventListener('change', e=>{
+    if(e.target.name){
+      answers[e.target.name] = parseInt(e.target.value,10);
+      // 已出过结果才联动重算（防抖）。首次作答期间不请求——否则 47 题会打 47 次接口，
+      // 白白耗尽游客试用额度；首次由「③ 计算 / 重新映射」按钮触发。
+      if(hasResult) liveMap();
+    }
+  });
+
+  // ---------- 导入自评数据（JSON/CSV，格式兼容模块4「导出单受访者引擎自评数据」）----------
+  // 回填作答 + 权重/启用框架/占星三要素，并重算。导入 JSON / 读取云端档案共用。
+  function applyImportData(answers2, meta){
+    Object.keys(answers).forEach(k=>delete answers[k]);
+    Object.assign(answers, answers2);
+    let filled=0, skipped=[];
+    Object.entries(answers2).forEach(([qid,idx])=>{
+      const radio = document.querySelector('input[type=radio][name="'+qid+'"][value="'+idx+'"]');
+      if(radio){ radio.checked=true; filled++; } else { skipped.push(qid); }
+    });
+    if(meta){
+      if(meta.enabled){ Object.keys(meta.enabled).forEach(fw=>{ const cb=document.querySelector('input[data-fw="'+fw+'"]'); if(cb) cb.checked=meta.enabled[fw]; }); Object.assign(enabled, meta.enabled); }
+      if(meta.weights){ Object.keys(meta.weights).forEach(fw=>{ const w=document.querySelector('input[data-w="'+fw+'"]'); if(w) w.value=meta.weights[fw]; }); Object.assign(weights, meta.weights); }
+      if(meta.aspectWeights && meta.aspectWeights.astro){ Object.keys(meta.aspectWeights.astro).forEach(a=>{ const el=document.querySelector('input[data-asp="'+a+'"]'); if(el) el.value=meta.aspectWeights.astro[a]; }); Object.assign(aspectWeights.astro, meta.aspectWeights.astro); if(typeof syncAspInputs==='function') syncAspInputs(); }
+      if(typeof updatePropBar==='function') updatePropBar();
+    }
+    computeAll(true);
+    return { filled, skipped };
+  }
+
+  document.getElementById('importBtn').addEventListener('click', ()=>{
+    const f = document.getElementById('importFile').files[0];
+    const msg = document.getElementById('importMsg');
+    if(!f){ msg.textContent='请先选择 JSON / CSV 文件'; return; }
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      try{
+        const text = String(reader.result||'');
+        let answers2 = null, meta = null;
+        if(/\.json$/i.test(f.name) || text.trim().charAt(0)==='{'){
+          const data = JSON.parse(text);
+          if(data && data.engine && data.engine.answers){ answers2 = data.engine.answers; meta = data.engine; }
+          else if(data && data.answers){ answers2 = data.answers; meta = data; }
+          else if(data && typeof data==='object' && !Array.isArray(data)){ answers2 = data; }
+        } else {
+          answers2 = {};
+          text.split(/\r?\n/).forEach(line=>{
+            line=line.trim(); if(!line) return;
+            const c=line.split(','); if(c.length<2) return;
+            const qid=c[0].trim(), val=c[1].trim();
+            if(/^\d+$/.test(val)) answers2[qid]=parseInt(val,10);
+          });
+        }
+        if(!answers2 || !Object.keys(answers2).length){ msg.textContent='文件中未解析到作答数据'; return; }
+        const r = applyImportData(answers2, meta);
+        msg.textContent = '已导入 '+r.filled+' 题'+(r.skipped.length?('，跳过 '+r.skipped.length+' 个未知题号：'+r.skipped.join('/')):'')+'。可点「④ 生成整体方案」。';
+      }catch(e){ msg.textContent='导入失败：'+(e&&e.message||e); }
+    };
+    reader.readAsText(f, 'utf-8');
+  });
+
+  // ---------- 计算与联动重算（映射引擎已在服务端：/api/engine/generate）----------
+  let lastResults = null, lastSel = null, lastVec = null, lastExp = null, lastPkg = null, hasResult = false;
+
+  function renderResult(payload, sel, doScroll){
+    const results = payload.results;
+    const vec = payload.vector;
+    const exp = payload.explanation;
+
+    // ① pills
+    const pills = document.getElementById('resPills');
+    pills.innerHTML = '';
+    sel.forEach(fwId=>{
+      const fw = DATA.bank.frameworks[fwId];
+      const r = results[fwId];
+      const el = document.createElement('span');
+      el.className='pill';
+      el.textContent = `${fw.name}：主 ${resultLabel(fwId,r.primary)} ｜ 次 ${resultLabel(fwId,r.secondary)}`;
+      pills.appendChild(el);
+    });
+
+    // ② vector bars
+    const vb = document.getElementById('vecBars'); vb.innerHTML='';
+    DATA.dims.dimensions.forEach(d=>{
+      const v = vec[d.id]||0;
+      const pct = (v+1)/2*100;
+      const row = document.createElement('div'); row.className='vec-row';
+      row.innerHTML = `<div class="neg">${d.negLabel}</div>
+        <div class="bar"><div class="mid"></div><div class="fill" style="left:${v<0?pct+'%':'50%'};width:${Math.abs(v)*50}%"></div></div>
+        <div class="pos">${d.posLabel}</div>`;
+      vb.appendChild(row);
+    });
+
+    // ③ explanation + raw
+    document.getElementById('expText').textContent = exp;
+    document.getElementById('rawVec').textContent = '原始向量 JSON：\n'+JSON.stringify(vec,null,0);
+
+    // 气质可视化：把 8 维向量实时传入背景着色器（权重联动时也会反复触发）
+    if(window.VECFX && DATA && DATA.dims && DATA.dims.dimensions){
+      window.VECFX.setVec(DATA.dims.dimensions.map(d=>(vec[d.id]||0)));
+    }
+
+    // 将审美向量存入 localStorage，供星云页（nebula.html）读取生成专属动态宇宙
+    try{ localStorage.setItem('aae-aesthetic-vector', JSON.stringify(DATA.dims.dimensions.map(d=>(vec[d.id]||0)))); }catch(e){}
+    const toNebula = document.getElementById('toNebula');
+    if(toNebula) toNebula.onclick = ()=>{ location.href = '/ai-aesthetic-engine/nebula.html'; };
+    const toFlow = document.getElementById('toFlow');
+    if(toFlow) toFlow.onclick = ()=>{ location.href = '/ai-aesthetic-engine/flowfield.html'; };
+    const toGalaxy = document.getElementById('toGalaxy');
+    if(toGalaxy) toGalaxy.onclick = ()=>{ location.href = '/ai-aesthetic-engine/galaxy.html'; };
+
+    // 占星各要素已解析星座（只读回显，让权重作用对象一目了然）
+    if(results.astro && results.astro._full){
+      ASP_ORDER.forEach(a=>{
+        const cell = aspRows.querySelector(`.asp-sign[data-sign="${a}"]`);
+        const signId = results.astro._full[a];
+        if(cell){
+          if(signId){ const sg = DATA.bank.signs[signId]; cell.innerHTML = '→ <b>'+(sg?sg.label:signId)+'</b>'; }
+          else cell.textContent = '→ —';
+        }
+      });
+    }
+
+    document.getElementById('result').style.display='block';
+    if(doScroll) document.getElementById('result').scrollIntoView({behavior:'smooth'});
+  }
+
+  // 结果缓存：拖动权重滑块会高频触发重算，相同入参直接复用上次结果，
+  // 既省往返延迟，也避免白白吃掉游客的每日试用额度。
+  const _engineCache = new Map();
+  const _CACHE_MAX = 60;
+  function cacheKey(body){
+    return JSON.stringify([body.answers, body.sel, body.weights, body.aspectWeights]);
+  }
+
+  // 调用服务端映射引擎：answers + 选择/权重 → 完整画像 pkg
+  // 游客可直接调用（按 IP 每日限额），登录后不限次
+  let _inflight = 0;
+  async function callEngine(body, silent){
+    const key = cacheKey(body);
+    if(_engineCache.has(key)) return _engineCache.get(key);
+    const seq = ++_inflight;
+    try{
+      const r = await fetch('/api/engine/generate', { method:'POST', headers: Object.assign({'Content-Type':'application/json'}, authHeaders()), body: JSON.stringify(body) });
+      const j = await r.json().catch(()=>({}));
+      if(r.status===429 || r.status===401){ return { __needLogin:true, error: j.error || '请先登录' }; }
+      if(!r.ok) throw new Error(j.error||('引擎错误 '+r.status));
+      // 仅缓存最新一次请求的结果，避免乱序覆盖
+      if(seq === _inflight){
+        _engineCache.set(key, j);
+        if(_engineCache.size > _CACHE_MAX) _engineCache.delete(_engineCache.keys().next().value);
+      }
+      if(j.trial) updateTrialUI(j.trial);
+      return j;
+    }catch(e){ if(!silent) alert('映射引擎调用失败：'+(e&&e.message||e)); return null; }
+  }
+
+  // 试用余额提示：游客顶栏显示剩余次数，用尽后引导登录
+  function updateTrialUI(t){
+    const el = document.getElementById('trialInfo');
+    if(!el) return;
+    if(!t || getToken()){ el.textContent=''; el.style.display='none'; return; }
+    el.style.display='';
+    el.textContent = '游客试用剩余 ' + t.remaining + '/' + t.limit + ' 次';
+    el.style.color = t.remaining <= 5 ? 'var(--warn)' : '';
+  }
+  function onTrialExhausted(msg, silent){
+    const el = document.getElementById('trialInfo');
+    if(el){ el.style.display=''; el.style.color='var(--warn)'; el.textContent = '游客试用已用完 · 登录后不限次'; }
+    if(!silent){ alert(msg || '游客试用今日已用完，登录后可不限次数使用'); openAuth('login'); }
+  }
+
+  // 完整计算（首次/作答大改）：服务端重新打分 + 映射
+  async function computeAll(scroll, silent){
+    const sel = ORDER.filter(fwId=>enabled[fwId]);
+    if(!sel.length){ alert('请至少选择一个建模框架'); return; }
+    const payload = await callEngine({ answers, sel, weights, aspectWeights }, silent);
+    if(!payload) return;
+    if(payload.__needLogin){ onTrialExhausted(payload.error, silent); return; }
+    lastResults = payload.results; lastSel = sel; lastVec = payload.vector; lastExp = payload.explanation; lastPkg = payload.pkg; hasResult = true;
+    renderResult(payload, sel, scroll);
+    // 自评出结果后，自动显示「④ 整体美学方案」区块（含「生成整体方案」按钮）
+    const gs = document.getElementById('genSection');
+    if (gs) gs.style.display = 'block';
+  }
+
+  // 仅权重/选择变化：防抖后重新映射（联动核心）。
+  // 350ms：滑块连续拖动期间只在停手后发一次请求
+  let _liveTimer = null;
+  function liveMap(){
+    if(_liveTimer) clearTimeout(_liveTimer);
+    _liveTimer = setTimeout(()=>{ computeAll(false, true); }, 350);
+  }
+
+  document.getElementById('calc').addEventListener('click', ()=>computeAll(true));
+
+  // ---------- ④ 生成层 MVP：本地映射 + 后端代理出图 ----------
+  const genSection = document.getElementById('genSection');
+  const genBody = document.getElementById('genBody');
+  document.getElementById('genBtn').addEventListener('click', ()=>{
+    if(!hasResult){ alert('请先完成作答并计算'); return; }
+    const pkg = lastPkg;
+    if(!pkg){ alert('方案数据缺失，请重新点击「③ 计算 / 重新映射」'); return; }
+    document.getElementById('genPrompt').value = pkg.imagePrompt.text;
+    document.getElementById('genSpace').textContent = pkg.spaceStyle.text;
+    document.getElementById('genPalette').textContent = JSON.stringify(pkg.spaceStyle.palette);
+    document.getElementById('genMood').textContent = pkg.profile.moodWords.join('、');
+    genBody.style.display = 'block';
+    genSection.style.display = 'block';
+    genSection.scrollIntoView({behavior:'smooth'});
+    window.__lastPkg = pkg;
+    // 方案变了，旧出图不再对应当前气质：清掉，免得分享卡/报告配上一版的图
+    window.__lastImage = null;
+    const oldImg = document.getElementById('genImg');
+    oldImg.src = ''; oldImg.style.display = 'none';
+    document.getElementById('dlImg').style.display = 'none';
+    // 供「生活应用」新页面读取（同源 tab 内 sessionStorage 共享）
+    try { sessionStorage.setItem('aae_pkg', JSON.stringify(pkg)); } catch (e) {}
+  });
+
+  // 「生活应用」三个模块 → 打开独立页面（新页面自行读取 sessionStorage 中的 pkg）
+  Array.prototype.forEach.call(document.querySelectorAll('#genBody [data-scene]'), (btn) => {
+    btn.addEventListener('click', () => {
+      if (!window.__lastPkg) { alert('请先点击「生成整体方案」'); return; }
+      window.open('life-app.html?scene=' + btn.getAttribute('data-scene'), '_blank');
+    });
+  });
+  document.getElementById('copyPrompt').addEventListener('click', ()=>{
+    const t = document.getElementById('genPrompt').value;
+    if(navigator.clipboard) navigator.clipboard.writeText(t).then(()=>alert('已复制提示词'),()=>{});
+    else alert('复制失败：请手动选择文本复制');
+  });
+  // 异步生成任务轮询：提交拿到 jobId 后定时查询 /api/job/:id。
+  // 网络抖动只中断轮询（catch 忽略），任务在服务器后台跑完，恢复后照取结果，几分钟的活儿不白做。
+  function startJob(jobId, cb) {
+    const start = Date.now();
+    let stopped = false;
+    async function tick() {
+      if (stopped) return;
+      let j = null;
+      try { const r = await fetch('/api/job/' + encodeURIComponent(jobId)); if (r.ok) j = await r.json(); }
+      catch (e) { j = null; } // 网络抖动：忽略，下一轮继续
+      if (!j) { setTimeout(tick, 3000); return; }
+      const secs = Math.round((Date.now() - start) / 1000);
+      if (j.status === 'done') { stopped = true; cb.done && cb.done(j.result, secs); return; }
+      if (j.status === 'error') { stopped = true; cb.error && cb.error(j, secs); return; }
+      if (cb.tick) cb.tick(j, secs);
+      setTimeout(tick, 3000);
+    }
+    setTimeout(tick, 600);
+    return () => { stopped = true; };
+  }
+  // 把云端/服务端原始错误翻译成人话
+  function friendlyGenErr(j, fallback) {
+    const msg = (j && (j.error || j.reason)) || fallback || '失败';
+    if (/额度|quota|limit/i.test(msg)) return '额度已用完，登录后可用本人额度继续（' + msg + '）';
+    if (/rate|限频|too many/i.test(msg)) return '请求过于频繁，请稍后再试（' + msg + '）';
+    if (/超时|timeout/i.test(msg)) return '生成超时，云端繁忙，请稍后重试（' + msg + '）';
+    if (/key|token|鉴权|401|unauthor/i.test(msg)) return '生成服务鉴权失效，请联系管理员（' + msg + '）';
+    return String(msg);
+  }
+
+  document.getElementById('reqImg').addEventListener('click', async ()=>{
+    // 融合「影像提示词」+「空间 / 视觉风格」，让单张图同时体现两者
+    const pkg = window.__lastPkg;
+    let t;
+    if(pkg && pkg.imagePrompt && pkg.imagePrompt.text){
+      const space = (pkg.spaceStyle && pkg.spaceStyle.text) || '';
+      const pal = (pkg.spaceStyle && pkg.spaceStyle.palette && Array.isArray(pkg.spaceStyle.palette.swatches)) ? pkg.spaceStyle.palette.swatches.join('/') : '';
+      const mood = (pkg.profile && pkg.profile.moodWords) ? pkg.profile.moodWords.join('/') : '';
+      t = pkg.imagePrompt.text
+        + '\n空间落地：' + space
+        + ' 配色：' + pal
+        + ' 情绪：' + mood
+        + '。以室内 / 空间场景实拍质感呈现，而非抽象概念图。';
+      if(t.length > 800) t = t.slice(0, 797) + '…';
+    } else {
+      t = document.getElementById('genPrompt').value;
+    }
+    const imgEl = document.getElementById('genImg');
+    const msg = document.getElementById('genImgMsg');
+    const quotaEl = document.getElementById('genQuota');
+    const dlEl = document.getElementById('dlImg');
+    const btn = document.getElementById('reqImg');
+    imgEl.style.display='none'; imgEl.src=''; dlEl.style.display='none'; msg.textContent='提交中…';
+    btn.disabled = true; btn.style.opacity = '0.5'; btn.textContent = '出图中…';
+    try{
+      const provider = document.getElementById('genProvider').value;
+      const body = { prompt:t, opts:{} };
+      if(provider) body.opts.provider = provider;
+      const r = await fetch('/api/generate-image',{method:'POST',headers:Object.assign({'Content-Type':'application/json'}, authHeaders()),body:JSON.stringify(body)});
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok || !j.jobId){
+        msg.textContent = friendlyGenErr(j, '提交出图失败');
+        btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '重新出图';
+        if(j.needLogin && confirm('出图额度已用完，登录后即可使用本人额度继续出图。是否现在登录？')) openAuth('login');
+        return;
+      }
+      startJob(j.jobId, {
+        tick: (job, s) => { msg.textContent = '出图中…（已等待 ' + s + 's）'; },
+        done: (res) => {
+          if(res && res.image){ imgEl.src=res.image; imgEl.style.display='block'; dlEl.style.display='inline-block'; msg.textContent=''; window.__lastImage = res.image; window.__lastImageUrl = res.imageUrl || null; }
+          else msg.textContent = '未出图：' + (res&&(res.error||res.reason)||'未知原因') + '（可复制提示词到文生图工具）';
+          if(res&&res.imgTrial){ quotaEl.textContent = '游客今日出图剩余 ' + res.imgTrial.remaining + ' / ' + res.imgTrial.limit + ' 张'; }
+          else if(res&&res.quota){ quotaEl.textContent = '剩余额度 ' + (res.quota.limit - res.quota.used) + ' / ' + res.quota.limit; }
+          if(res&&res.needLogin && !res.image){ if(confirm('出图额度已用完，登录后即可使用本人额度继续出图。是否现在登录？')) openAuth('login'); }
+          btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '请求后端出图';
+        },
+        error: (job) => {
+          msg.textContent = friendlyGenErr(job, '出图失败');
+          if(job.needLogin && confirm('出图额度已用完，登录后即可使用本人额度继续出图。是否现在登录？')) openAuth('login');
+          btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '重新出图';
+        }
+      });
+    }catch(e){ msg.textContent = '请求失败：' + (e&&e.message||e) + '（后端未运行或未配置密钥）'; btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '请求后端出图'; }
+  });
+  document.getElementById('dlImg').addEventListener('click', ()=>{
+    const imgEl = document.getElementById('genImg');
+    if(!imgEl.src) return;
+    const a = document.createElement('a');
+    a.href = imgEl.src;
+    a.download = 'aesthetic_' + Date.now() + '.png';
+    document.body.appendChild(a); a.click(); a.remove();
+  });
+
+  // 3D 神性雕塑：基于画像派生提示词 → 调 /api/3d/generate → model-viewer 展示
+  document.getElementById('gen3dBtn').addEventListener('click', async ()=>{
+    const pkg = window.__lastPkg;
+    if(!pkg){ alert('请先点击「生成整体方案」'); return; }
+    const btn = document.getElementById('gen3dBtn');
+    const msg = document.getElementById('gen3dMsg');
+    const wrap = document.getElementById('gen3dWrap');
+    // 由画像派生 3D 提示词（混元3D prompt 上限约 200 字符）
+    const mood = (pkg.profile && pkg.profile.moodWords) ? pkg.profile.moodWords.join('、') : '';
+    const space = (pkg.spaceStyle && pkg.spaceStyle.text) || '';
+    const pal = (pkg.spaceStyle && pkg.spaceStyle.palette && Array.isArray(pkg.spaceStyle.palette.swatches)) ? pkg.spaceStyle.palette.swatches.join('/') : '';
+    let prompt = '一件体现「' + (mood || '神性美学') + '」气质的抽象神性雕塑，' + space
+      + '，材质半透明水晶与磨砂金属，' + (pal || '紫粉渐变') + '配色，'
+      + '对称而流动的神圣形态，可作为艺术摆件。';
+    if(prompt.length > 200) prompt = prompt.slice(0, 197) + '…';
+    msg.textContent = '提交中（约 1–5 分钟，请稍候）…';
+    btn.disabled = true; btn.style.opacity = '0.5'; btn.textContent = '生成中…';
+    wrap.innerHTML = '<div class="model3d"><div class="loading">正在生成 3D 雕塑…</div></div>';
+    try{
+      const r = await fetch('/api/3d/generate', { method:'POST', headers: Object.assign({'Content-Type':'application/json'}, authHeaders()), body: JSON.stringify({ prompt }) });
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok || !j.jobId){
+        msg.textContent = (j.error || (r.status===401?'请先登录后再生成 3D 雕塑':'提交 3D 失败'));
+        btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '重新生成';
+        return;
+      }
+      startJob(j.jobId, {
+        tick: (job, s) => { msg.textContent = '3D 雕塑生成中…（已等待 ' + s + 's）'; },
+        done: (res) => {
+          if(!res || !res.model_path){ msg.textContent = '3D 生成未返回模型，请重试'; btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '重新生成'; return; }
+          window.__last3d = res.model_path || null;
+          wrap.innerHTML = '<div class="sec-t">3D 雕塑 · 可拖拽旋转 / 滚轮缩放</div>'
+            + '<div class="model3d"><model-viewer src="'+esc(res.model_path)+'" camera-controls auto-rotate shadow-intensity="1" alt="气质 3D 雕塑" loading="eager" min-camera-orbit="auto 10deg 20%" max-camera-orbit="auto 170deg 300%"></model-viewer><div class="loading">正在加载 3D 雕塑…</div></div>';
+          if(!customElements.get('model-viewer')){
+            const m = document.createElement('script'); m.type = 'module';
+            m.src = '/ai-aesthetic-engine/assets/model-viewer.min.js';
+            document.head.appendChild(m);
+          }
+          const mv = wrap.querySelector('model-viewer');
+          const hide = () => { const l = mv && mv.parentElement && mv.parentElement.querySelector('.loading'); if(l) l.remove(); };
+          if(mv){ mv.addEventListener('load', hide); mv.addEventListener('error', () => { const l = mv.parentElement.querySelector('.loading'); if(l) l.textContent = '3D 雕塑加载失败，请刷新重试'; }); setTimeout(hide, 8000); }
+          msg.textContent = ''; btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '重新生成';
+        },
+        error: (job) => {
+          const code = job.code || 500;
+          msg.textContent = code === 429 ? '今日 3D 生成额度已用完（云端每日上限 5 次），请明天再试' : ('3D 生成失败：' + friendlyGenErr(job, '未知错误'));
+          btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '重新生成';
+        }
+      });
+    }catch(e){ msg.textContent = '请求失败：' + (e&&e.message||e); btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '重新生成'; }
+  });
+
+  // 神性视频：文生视频，调用 /api/video/generate
+  function renderVideo(wrap, url, msg, btn){
+    if(!url){ msg.textContent = '生成失败，请稍后重试'; return; }
+    wrap.innerHTML = '<video src="'+esc(url)+'" controls autoplay loop muted playsinline style="max-width:100%;border-radius:10px;margin-top:6px"></video>';
+    msg.textContent = ''; btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '重新生成';
+  }
+
+  document.getElementById('vidGenBtn').addEventListener('click', async ()=>{
+    const pkg = window.__lastPkg;
+    let t = document.getElementById('vidPrompt').value.trim();
+    if(!t && pkg){
+      const mood = (pkg.profile && pkg.profile.moodWords) ? pkg.profile.moodWords.join('、') : '';
+      const space = (pkg.spaceStyle && pkg.spaceStyle.text) || '';
+      const pal = (pkg.spaceStyle && pkg.spaceStyle.palette && Array.isArray(pkg.spaceStyle.palette.swatches)) ? pkg.spaceStyle.palette.swatches.join('/') : '';
+      t = '一段体现「' + (mood || '神性美学') + '」气质的流光神性短片，' + space + '，' + (pal || '紫粉渐变') + '配色，柔光流淌，神圣而梦幻的氛围。';
+      document.getElementById('vidPrompt').value = t;
+    }
+    if(!t){ alert('请先填写视频描述，或先「生成整体方案」自动派生'); return; }
+    const btn = document.getElementById('vidGenBtn');
+    const msg = document.getElementById('vidGenMsg');
+    const wrap = document.getElementById('vidGenWrap');
+    msg.textContent = '提交中（约数十秒到数分钟，请稍候）…';
+    btn.disabled = true; btn.style.opacity = '0.5'; btn.textContent = '生成中…';
+    wrap.innerHTML = '';
+    try{
+      const r = await fetch('/api/video/generate', { method:'POST', headers: Object.assign({'Content-Type':'application/json'}, authHeaders()), body: JSON.stringify({ prompt: t }) });
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok || !j.jobId){
+        msg.textContent = (j.error || (r.status===401?'请先登录后再生成视频':'视频提交失败'));
+        btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '生成文生视频';
+        return;
+      }
+      startJob(j.jobId, {
+        tick: (job, s) => { msg.textContent = '视频生成中…（已等待 ' + s + 's）'; },
+        done: (res) => {
+          renderVideo(wrap, res && res.video, msg, btn);
+          window.__lastVideo = (res && res.video) || null;
+        },
+        error: (job) => {
+          const code = job.code || 500;
+          msg.textContent = code === 429 ? '今日视频生成额度已用完，请明天再试' : ('视频生成失败：' + friendlyGenErr(job, '未知错误'));
+          btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '生成文生视频';
+        }
+      });
+    }catch(e){ msg.textContent = '请求失败：' + (e&&e.message||e); btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '生成文生视频'; }
+  });
+
+  // ---------- 导出测评数据（测评结束后：JSON 可再导入 / Markdown 可读报告）----------
+  function stamp(){
+    const d = new Date(); const p = n => String(n).padStart(2,'0');
+    return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'_'+p(d.getHours())+p(d.getMinutes())+p(d.getSeconds());
+  }
+  function downloadBlob(blob, filename){
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  }
+  // 结构化导出：engine 字段与「导入自评数据」读取格式一致，可被本页重新导入回填
+  function buildExport(){
+    const sel = lastSel || ORDER.filter(fwId=>enabled[fwId]);
+    const vec = lastVec;
+    const exp = lastExp;
+    return {
+      meta: {
+        app: 'AI 审美系统 · 神性测评体验',
+        version: 'v0.1 原型',
+        exportedAt: new Date().toISOString(),
+        generator: 'ai-aesthetic-engine'
+      },
+      engine: {
+        answers: Object.assign({}, answers),
+        enabled: Object.assign({}, enabled),
+        weights: Object.assign({}, weights),
+        aspectWeights: { astro: Object.assign({}, aspectWeights.astro) }
+      },
+      results: lastResults,
+      vector: vec,
+      explanation: exp,
+      package: window.__lastPkg || null
+    };
+  }
+  function buildMarkdown(){
+    const sel = lastSel || ORDER.filter(fwId=>enabled[fwId]);
+    const vec = lastVec;
+    const exp = lastExp;
+    const L = [];
+    L.push('# AI 审美系统 · 神性测评体验 报告'); L.push('');
+    L.push('> 导出时间：' + new Date().toLocaleString('zh-CN'));
+    L.push('> 版本：v0.1 原型'); L.push('');
+    L.push('## 一、各框架主 / 次结果');
+    sel.forEach(fwId=>{
+      const fw = DATA.bank.frameworks[fwId];
+      const r = lastResults[fwId];
+      if(!r) return;
+      L.push('- **' + fw.name + '**：主 ' + resultLabel(fwId,r.primary) + ' ｜ 次 ' + resultLabel(fwId,r.secondary));
+    });
+    L.push(''); L.push('## 二、统一美学向量（8 轴）');
+    DATA.dims.dimensions.forEach(d=>{
+      const v = vec[d.id]||0;
+      L.push('- ' + d.negLabel + ' ↔ ' + d.posLabel + '：' + v.toFixed(3));
+    });
+    L.push(''); L.push('## 三、为什么这样彰显你的气质'); L.push(''); L.push(exp); L.push('');
+    if(window.__lastPkg){
+      const p = window.__lastPkg;
+      L.push('## 四、整体美学方案'); L.push('');
+      L.push('### 影像文生图提示词'); L.push('```'); L.push(p.imagePrompt ? p.imagePrompt.text : ''); L.push('```'); L.push('');
+      L.push('### 空间 / 视觉风格方案'); L.push(p.spaceStyle ? p.spaceStyle.text : ''); L.push('');
+      L.push('调色走向：' + (p.spaceStyle ? JSON.stringify(p.spaceStyle.palette) : '—'));
+      L.push(''); L.push('情绪基调：' + ((p.profile && p.profile.moodWords) ? p.profile.moodWords.join('、') : '—'));
+    }
+    return L.join('\n');
+  }
+  document.getElementById('expJson').addEventListener('click', ()=>{
+    if(!hasResult){ alert('请先完成作答并计算'); return; }
+    const data = buildExport();
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+    downloadBlob(blob, 'aesthetic_assessment_' + stamp() + '.json');
+    document.getElementById('expMsg').textContent = '已导出 JSON（含作答与权重，可重新导入本页）';
+  });
+  document.getElementById('expMd').addEventListener('click', ()=>{
+    if(!hasResult){ alert('请先完成作答并计算'); return; }
+    const md = buildMarkdown();
+    const blob = new Blob([md], {type:'text/markdown;charset=utf-8'});
+    downloadBlob(blob, 'aesthetic_assessment_' + stamp() + '.md');
+    document.getElementById('expMsg').textContent = '已导出 Markdown 报告';
+  });
+
+  // 导出美化报告：一份自包含、带排版的 HTML 文档（可打印 / 存为 PDF）。
+  // 含气质海报封面（SVG）+ 8 轴条形图 + 框架 + 说明 + 整体美学方案 + 出图（如有）。
+  document.getElementById('expHtml').addEventListener('click', ()=>{
+    if(!hasResult){ alert('请先完成作答并计算'); return; }
+    const html = buildReportHTML();
+    const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const w = window.open(url, '_blank');
+    if(!w){ alert('浏览器拦截了新窗口，请允许本页弹窗后重试'); }
+    setTimeout(()=>URL.revokeObjectURL(url), 60000);
+    document.getElementById('expMsg').textContent = '已生成美化报告（新标签页可打印 / 存为 PDF）';
+  });
+
+  function buildReportHTML(){
+    // 报告跟随当前站点主题：深色站点导出深色报告，浅色站点导出浅色报告
+    const siteTheme = document.documentElement.getAttribute('data-theme')
+      || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    const T = siteTheme === 'dark' ? {
+      bg:'#15141a', ink:'#ece9f2', mut:'#a8a0b8', card:'#211f29', line:'#322f3c',
+      chip:'#1a1822', neg:'#4cc9a0', pos:'#e06a5a', barbg:'#2a2733', mid:'#4a4658',
+      foot:'#7d7689', tbar:'#1c1a24', tline:'#322f3c', hint:'#a8a0b8', dash:'#2a2733'
+    } : {
+      bg:'#f6f5f2', ink:'#2b2b2b', mut:'#88807a', card:'#fff', line:'#e6e2dc',
+      chip:'#fbfaf8', neg:'#1f8a70', pos:'#c0392b', barbg:'#eee', mid:'#bbb',
+      foot:'#a89f97', tbar:'#fff', tline:'#e6e2dc', hint:'#88807a', dash:'#d8d3cb'
+    };
+    const sel = lastSel || ORDER.filter(fwId=>enabled[fwId]);
+    const vec = lastVec, exp = lastExp;
+    const pkg = window.__lastPkg || null;
+
+    // 气质海报封面（确定性 SVG，不消耗出图额度）
+    let cover = '';
+    try {
+      if (window.AestheticPoster) {
+        cover = AestheticPoster.renderPosterSVG({
+          title: '我的神性测评',
+          mood: (pkg && pkg.profile && pkg.profile.moodWords) || [],
+          results: lastResults,
+          vector: vec,
+          explanation: exp
+        });
+      }
+    } catch (e) { cover = ''; }
+
+    // 框架主/次
+    const pills = sel.map(fwId=>{
+      const fw = DATA.bank.frameworks[fwId];
+      const r = lastResults[fwId];
+      return '<li><b>'+esc(fw.name)+'</b>：主 '+esc(resultLabel(fwId, r&&r.primary))+' ｜ 次 '+esc(resultLabel(fwId, r&&r.secondary))+'</li>';
+    }).join('');
+
+    // 8 轴条形
+    const bars = DATA.dims.dimensions.map(d=>{
+      const v = (vec[d.id]||0);
+      const pct = (v+1)/2*100;
+      const left = v<0 ? pct+'%' : '50%';
+      const width = Math.abs(v)*50+'%';
+      return '<div class="row"><span class="neg">'+esc(d.negLabel)+'</span>'
+        + '<span class="bar"><i class="mid"></i><i class="fill" style="left:'+left+';width:'+width+'"></i></span>'
+        + '<span class="pos">'+esc(d.posLabel)+'</span></div>';
+    }).join('');
+
+    // 美学方案
+    const space = (pkg && pkg.spaceStyle) || {};
+    const sw = (space.palette && Array.isArray(space.palette.swatches)) ? space.palette.swatches.join(' / ') : '—';
+    const prompt = (pkg && pkg.imagePrompt && pkg.imagePrompt.text) || '';
+    const mood = (pkg && pkg.profile && pkg.profile.moodWords) ? pkg.profile.moodWords.join('、') : '—';
+
+    // 出图（本次计算后生成的图；重新计算会置空，避免把上一轮的图混进新报告）
+    const imgSrc = (window.__lastImage && String(window.__lastImage).indexOf('data:image') === 0) ? window.__lastImage : null;
+
+    // 目录：只列真正会出现的章节，避免目录指向空页
+    const chapters = [
+      { id:'c1', name:'一、各框架主 / 次结果' },
+      { id:'c2', name:'二、统一美学向量（8 轴）' },
+      { id:'c3', name:'三、为什么这样彰显你的气质' }
+    ];
+    if (pkg) chapters.push({ id:'c4', name:'四、整体美学方案' });
+    if (imgSrc) chapters.push({ id:'c5', name:'五、气质影像出图' });
+    const toc = chapters.map((c,i)=>'<li><a href="#'+c.id+'">'+esc(c.name)+'</a></li>').join('');
+
+    const css = ''
+      + 'body{margin:0;background:'+T.bg+';color:'+T.ink+';font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.7}'
+      // sheet = 一「页」：屏幕上连续滚动，打印时靠 .brk 强制分页
+      + '.sheet{max-width:820px;margin:0 auto;padding:28px 22px 40px}'
+      + '.cover-page{text-align:center;padding-top:48px}'
+      + '.cover{max-width:400px;margin:0 auto 18px}' + (cover ? '.cover svg{width:100%;height:auto;display:block;border-radius:18px;box-shadow:0 10px 36px rgba(138,109,240,.12)}' : '')
+      + 'h1{font-size:26px;margin:18px 0 4px;letter-spacing:.02em}'
+      + '.sub{color:'+T.mut+';font-size:13px;margin-bottom:18px}'
+      + '.toc{display:inline-block;text-align:left;background:'+T.card+';border:1px solid '+T.line+';border-radius:14px;padding:16px 30px 16px 20px;margin-top:26px;min-width:320px}'
+      + '.toc h3{margin:0 0 8px;font-size:14px;color:'+T.mut+';font-weight:600;letter-spacing:.08em}'
+      + '.toc ol{margin:0;padding-left:18px}.toc li{margin:6px 0;font-size:14px}'
+      + '.toc a{color:'+T.ink+';text-decoration:none}'
+      + '.sec{background:'+T.card+';border:1px solid '+T.line+';border-radius:14px;padding:18px 20px;margin:16px 0}'
+      + '.sec h2{margin:0 0 12px;font-size:17px}'
+      + 'ul{margin:0;padding-left:20px}li{margin:5px 0}'
+      + '.row{display:grid;grid-template-columns:72px 1fr 72px;align-items:center;gap:8px;margin:8px 0;font-size:13px}'
+      + '.neg{color:'+T.neg+';text-align:right}.pos{color:'+T.pos+'}'
+      + '.bar{position:relative;height:14px;background:'+T.barbg+';border-radius:7px;overflow:hidden}'
+      + '.bar .mid{position:absolute;left:50%;top:0;bottom:0;width:1px;background:'+T.mid+'}'
+      + '.bar .fill{position:absolute;top:0;bottom:0;background:linear-gradient(90deg,'+T.neg+','+T.pos+')}'
+      + '.exp{white-space:pre-wrap;background:'+T.chip+';border:1px solid '+T.line+';border-radius:10px;padding:12px;font-size:14px}'
+      + '.kv{background:'+T.chip+';border:1px solid '+T.line+';border-radius:10px;padding:12px;font-size:14px;white-space:pre-wrap;word-break:break-word}'
+      + '.gen{max-width:100%;border-radius:12px;border:1px solid '+T.line+'}'
+      + '.foot{color:'+T.foot+';font-size:11px;text-align:center;margin-top:26px}'
+      + '.toolbar{position:sticky;top:0;background:'+T.tbar+';border-bottom:1px solid '+T.tline+';padding:10px 22px;display:flex;gap:10px;align-items:center;z-index:5}'
+      + '.toolbar button{font-size:14px;border:none;border-radius:10px;padding:8px 16px;background:#8a6df0;color:#fff;cursor:pointer}'
+      + '.toolbar .hint{color:'+T.hint+';font-size:12px}'
+      // 屏幕上用虚线示意页边界，让人看得出分了几页
+      + '@media screen{.brk{border-top:1px dashed '+T.dash+';margin-top:30px}}'
+      + '@page{margin:14mm}'
+      + '@media print{.toolbar{display:none}'
+      +   '.sheet{max-width:none;padding:0}'
+      +   '.brk{break-before:page;page-break-before:always;border:none;margin-top:0}'
+      +   '.sec,.row,.cover{break-inside:avoid;page-break-inside:avoid}'
+      +   '.gen{max-height:230mm}}';
+
+    return '<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">'
+      + '<meta name="viewport" content="width=device-width,initial-scale=1">'
+      + '<title>神性测评 · 美化报告</title><style>'+css+'</style></head><body>'
+      + '<div class="toolbar"><button onclick="window.print()">打印 / 存为 PDF</button><span class="hint">在打印对话框里选「另存为 PDF」，报告已按章节分页</span></div>'
+      // 第 1 页：封面 + 目录
+      + '<section class="sheet cover-page">'
+      +   (cover ? '<div class="cover">'+cover+'</div>' : '')
+      +   '<h1>AI 审美系统 · 神性测评报告</h1>'
+      +   '<div class="sub">导出时间：'+new Date().toLocaleString('zh-CN')+' ｜ 版本：v0.1 原型</div>'
+      +   '<div class="toc"><h3>目录</h3><ol>'+toc+'</ol></div>'
+      + '</section>'
+      // 第 2 页：结构化结果（框架 + 8 轴）
+      + '<section class="sheet brk">'
+      +   '<div class="sec" id="c1"><h2>一、各框架主 / 次结果</h2><ul>'+pills+'</ul></div>'
+      +   '<div class="sec" id="c2"><h2>二、统一美学向量（8 轴）</h2>'+bars+'</div>'
+      + '</section>'
+      // 第 3 页：文字解读 + 美学方案
+      + '<section class="sheet brk">'
+      +   '<div class="sec" id="c3"><h2>三、为什么这样彰显你的气质</h2><div class="exp">'+esc(exp||'')+'</div></div>'
+      +   (pkg ? '<div class="sec" id="c4"><h2>四、整体美学方案</h2>'
+          + (prompt ? '<div class="sub" style="margin-top:0">影像文生图提示词</div><div class="kv">'+esc(prompt)+'</div>' : '')
+          + (space.text ? '<div class="sub" style="margin-top:12px">空间 / 视觉风格方案</div><div class="kv">'+esc(space.text)+'</div>' : '')
+          + '<div class="sub" style="margin-top:12px">调色走向：'+esc(sw)+' ｜ 情绪基调：'+esc(mood)+'</div>'
+        + '</div>' : '')
+      + '</section>'
+      // 第 4 页：出图独占一页（图大，混排容易被截断）
+      + (imgSrc ? '<section class="sheet brk"><div class="sec" id="c5"><h2>五、气质影像出图</h2><img class="gen" src="'+imgSrc+'" alt="生成图"></div></section>' : '')
+      + '<div class="foot">本报告由「AI 审美系统 · 神性测评体验」本地生成，仅供个人审美参考。</div>'
+      + '</body></html>';
+  }
+  // 生成公开分享卡片：把当前测评结果存成一张对外链接，任何人可打开查看（拉新钩子）
+  document.getElementById('shareBtn').addEventListener('click', async ()=>{
+    if(!hasResult){ alert('请先完成作答并计算'); return; }
+    // 分享专用 payload：在导出数据之外附带当前 AI 出图，让卡片有真实主视觉。
+    // 只在分享时带图——导出 JSON / 云端保存都不带，避免几 MB 的 base64 撑大文件与数据库。
+    // 服务端收到后会落盘成静态图并做脱敏（剔除逐题作答）。
+    const data = Object.assign({}, buildExport(), {
+      image: window.__lastImage || null,
+      video: window.__lastVideo || null,
+      model3d: window.__last3d || null
+    });
+    const btn = document.getElementById('shareBtn');
+    btn.disabled = true; const old = btn.textContent; btn.textContent = '生成中…';
+    try{
+      const moodWords = (data.package && data.package.profile && data.package.profile.moodWords) || [];
+      // 标题同时用于卡片抬头和 OG 图，两处保持一致
+      const shareTitle = moodWords.length ? moodWords.slice(0, 4).join('、') : '我的神性测评';
+
+      // 社交预览图（1200×630 横版）：微信/飞书/Telegram 这类抓取器不执行 JS，
+      // 只能靠服务端注入的 og:image 指向这张图，链接分享出去才有配图。
+      // 出图失败不能挡住分享本身 —— 失败就退回「无图预览」，卡片照样能建。
+      btn.textContent = '生成预览图…';
+      let ogImage = null;
+      try{
+        if(window.AestheticPoster && AestheticPoster.renderOGCardSVG){
+          const ogOpts = {
+            title: shareTitle,
+            mood: moodWords,
+            results: data.results || {},
+            vector: data.vector || {},
+            explanation: data.explanation || '',
+            image: window.__lastImageUrl || window.__lastImage || null  // OG 预览图主视觉用出图
+          };
+          const renderOG = withImg => AestheticPoster.renderOGCardSVG(Object.assign({}, ogOpts, withImg ? {} : { image: null }));
+          // 先尝试以出图为主视觉；若出图背景合成失败（如图片加载异常），回退纯矢量海报
+          let ogSVG = renderOG(true);
+          ogImage = await Promise.race([
+            new Promise(res=>AestheticPoster.svgToPngDataURL(ogSVG, 1200, 630, res)),
+            new Promise(res=>setTimeout(()=>res(null), 8000))
+          ]);
+          if(!ogImage){
+            ogSVG = renderOG(false);
+            ogImage = await Promise.race([
+              new Promise(res=>AestheticPoster.svgToPngDataURL(ogSVG, 1200, 630, res)),
+              new Promise(res=>setTimeout(()=>res(null), 8000))
+            ]);
+          }
+        }
+      }catch(e){ ogImage = null; }
+
+      btn.textContent = '上传中…';
+      const r = await fetch('/api/share', { method:'POST', headers: Object.assign({'Content-Type':'application/json'}, authHeaders()), body: JSON.stringify({ data, title: shareTitle, ogImage }) });
+      const j = await r.json();
+      if(!r.ok){ alert(j.error || '生成分享失败'); return; }
+      const link = location.origin + j.url;
+      const go = confirm('已生成公开分享卡片！\n\n链接：' + link + '\n\n点「确定」打开分享页，点「取消」复制链接到剪贴板。');
+      if(go) window.open(j.url, '_blank');
+      else { if(navigator.clipboard) navigator.clipboard.writeText(link).then(()=>{},()=>{}); }
+      document.getElementById('expMsg').textContent = '已生成分享卡片：' + j.title;
+    }catch(e){ alert('生成分享失败：' + (e&&e.message||e)); }
+    finally{ btn.disabled = false; btn.textContent = old; }
+  });
+
+  // ---------- 账户：登录 / 注册 / 档案保存读取 ----------
+  const AUTH_TOKEN_KEY = 'aae_token';
+  function getToken(){ try { return localStorage.getItem(AUTH_TOKEN_KEY) || null; } catch(e){ return null; } }
+  function setToken(t){ try { localStorage.setItem(AUTH_TOKEN_KEY, t); } catch(e){} }
+  function clearToken(){ try { localStorage.removeItem(AUTH_TOKEN_KEY); } catch(e){} }
+  function authHeaders(){ const t=getToken(); return t ? { 'Authorization': 'Bearer ' + t } : {}; }
+
+  // ---------- 游客标识（浏览器级）：未登录也能暂存测评，登录后归户 ----------
+  // 用 localStorage 持久一个随机 key 作为「本机身份」，随每次保存/读取带上 X-Guest-Key。
+  // 注意：这是转化钩子而非鉴权——只是把游客本次设备上的测评串起来，登录即并入账户。
+  const GUEST_KEY_KEY = 'aae_guest_key';
+  function genGuestKey(){
+    let k = 'g_';
+    try { k += (crypto.randomUUID ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2))); }
+    catch(e){ k += (Date.now().toString(36) + Math.random().toString(36).slice(2)); }
+    return k;
+  }
+  function getGuestKey(){ try { let k = localStorage.getItem(GUEST_KEY_KEY); if(!k){ k = genGuestKey(); localStorage.setItem(GUEST_KEY_KEY, k); } return k; } catch(e){ return null; } }
+  function readGuestKey(){ try { return localStorage.getItem(GUEST_KEY_KEY) || null; } catch(e){ return null; } }
+  function clearGuestKey(){ try { localStorage.removeItem(GUEST_KEY_KEY); } catch(e){} }
+  function guestHeaders(){ const k = getGuestKey(); return k ? { 'X-Guest-Key': k } : {}; }
+  const $ = id => document.getElementById(id);
+
+  // 刷新顶栏：登录态 / 访客；登录态顺带拉取本人额度，访客拉取试用余额
+  async function applyAuthUI(){
+    const t = getToken();
+    if(!t){
+      $('authGuest').style.display=''; $('authUser').style.display='none';
+      $('saveProfile').textContent = '暂存到本机（登录后归户）';
+      $('loadProfile').textContent = '读取本机暂存';
+      $('histBtn').textContent = '我的测评记录';
+      try{
+        const tr = await (await fetch('/api/trial')).json();
+        if(tr && !tr.unlimited) updateTrialUI(tr);
+      }catch(e){ /* 后端未运行时静默 */ }
+      return;
+    }
+    try{
+      const r = await fetch('/api/auth/me', { headers: authHeaders() });
+      if(!r.ok){ clearToken(); throw new Error('token 失效'); }
+      const j = await r.json();
+      $('authGuest').style.display='none'; $('authUser').style.display='';
+      $('saveProfile').textContent = '保存到云端';
+      $('loadProfile').textContent = '读取最近一次';
+      $('histBtn').textContent = '我的测评记录';
+      $('authEmail').textContent = j.user.email;
+      // 管理员徽章（仅管理员可见，真正的权限校验在服务端 /api/admin/*）
+      const role = $('authRole');
+      if(j.user.is_admin){ role.textContent='管理员'; role.style.display=''; } else { role.style.display='none'; }
+      $('adminLink').style.display = j.user.is_admin ? '' : 'none';
+      try{
+        const u = await (await fetch('/api/me/usage', { headers: authHeaders() })).json();
+        const q = $('authQuota');
+        if(u && u.limit < 0){ q.textContent='出图无限'; q.classList.add('inf'); }
+        else { q.textContent='出图剩余 ' + (u.limit - u.used) + '/' + u.limit; q.classList.remove('inf'); }
+      }catch(e){ $('authQuota').textContent=''; }
+    }catch(e){ $('authGuest').style.display=''; $('authUser').style.display='none'; }
+  }
+
+  // 弹窗
+  let authMode = 'login';
+  function openAuth(mode){ authMode = mode || 'login'; setAuthTab(authMode); $('authErr').textContent=''; $('authMask').classList.add('show'); $('authEmailInput').focus(); }
+  function closeAuth(){ $('authMask').classList.remove('show'); }
+  function setAuthTab(m){
+    authMode=m;
+    const forgot = (m==='forgot');
+    $('tabLogin').classList.toggle('active', m==='login');
+    $('tabReg').classList.toggle('active', m==='register');
+    $('tabForgot').classList.toggle('active', m==='forgot');
+    $('authPwWrap').style.display = forgot ? 'none' : '';
+    $('authForgotWrap').style.display = forgot ? '' : 'none';
+    $('authResetWrap').style.display = 'none'; // 离线重置码默认收起
+    $('authSendCode').disabled = false; $('authSendCode').textContent = '发送验证码到邮箱';
+    $('authErr').style.color = '';
+    $('authSubmit').textContent = (m==='register'?'注册':(m==='forgot'?'重置密码':'登录'));
+    $('authNote').style.display = forgot ? 'none' : '';
+  }
+  $('tabLogin').addEventListener('click', ()=>setAuthTab('login'));
+  $('tabReg').addEventListener('click', ()=>setAuthTab('register'));
+  $('tabForgot').addEventListener('click', ()=>setAuthTab('forgot'));
+  $('openAuth').addEventListener('click', ()=>openAuth('login'));
+  $('authCancel').addEventListener('click', closeAuth);
+  $('authMask').addEventListener('click', e=>{ if(e.target===$('authMask')) closeAuth(); });
+  // 忘记密码：发送验证码到邮箱
+  $('authSendCode').addEventListener('click', async ()=>{
+    const email = $('authEmailInput').value.trim();
+    $('authErr').style.color=''; $('authErr').textContent='';
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ $('authErr').textContent='请先填写正确的邮箱'; return; }
+    $('authSendCode').disabled=true; $('authSendCode').textContent='发送中…';
+    try{
+      const r = await fetch('/api/auth/forgot-request', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email }) });
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok){ $('authErr').style.color=''; $('authErr').textContent = j.error || '发送失败'; $('authSendCode').disabled=false; $('authSendCode').textContent='重新发送验证码'; return; }
+      $('authErr').style.color='var(--ok)'; $('authErr').textContent='验证码已发送，请查收邮箱（含垃圾邮件箱）';
+      $('authSendCode').textContent='重新发送验证码';
+      setTimeout(()=>{ $('authSendCode').disabled=false; }, 30e3);
+    }catch(e){ $('authErr').style.color=''; $('authErr').textContent='网络错误：'+(e&&e.message||e); $('authSendCode').disabled=false; $('authSendCode').textContent='重新发送验证码'; }
+  });
+  // 没有收到邮件？改用离线重置码
+  $('authUseReset').addEventListener('click', (e)=>{ e.preventDefault(); $('authResetWrap').style.display = ($('authResetWrap').style.display==='none')?'':'none'; });
+
+  $('authSubmit').addEventListener('click', async ()=>{
+    const email = $('authEmailInput').value.trim();
+    $('authErr').textContent='';
+    try{
+      if(authMode==='forgot'){
+        const newPassword = $('authNewPwInput').value;
+        if(newPassword.length < 6){ $('authErr').style.color=''; $('authErr').textContent='新密码至少 6 位'; return; }
+        // 离线重置码路径（点了「改用重置码重置」）
+        if($('authResetWrap').style.display !== 'none'){
+          const resetCode = $('authResetCodeInput').value.trim();
+          const r = await fetch('/api/auth/forgot-password', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, resetCode, newPassword }) });
+          const j = await r.json().catch(()=>({}));
+          if(!r.ok){ $('authErr').style.color=''; $('authErr').textContent = j.error || '重置失败'; return; }
+          alert('密码已重置 ✓ 请用新密码登录'); closeAuth();
+          $('authEmailInput').value=''; $('authResetCodeInput').value=''; $('authNewPwInput').value='';
+          setAuthTab('login'); return;
+        }
+        // 邮箱验证码路径
+        const code = $('authCodeInput').value.trim();
+        if(!/^\d{6}$/.test(code)){ $('authErr').style.color=''; $('authErr').textContent='请输入 6 位验证码'; return; }
+        const r = await fetch('/api/auth/forgot-verify', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, code, newPassword }) });
+        const j = await r.json().catch(()=>({}));
+        if(!r.ok){ $('authErr').style.color=''; $('authErr').textContent = j.error || '重置失败'; return; }
+        alert('密码已重置 ✓ 请用新密码登录'); closeAuth();
+        $('authEmailInput').value=''; $('authCodeInput').value=''; $('authNewPwInput').value='';
+        setAuthTab('login'); return;
+      }
+      const pw = $('authPwInput').value;
+      const url = authMode==='register' ? '/api/auth/register' : '/api/auth/login';
+      const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, password: pw }) });
+      const j = await r.json();
+      if(!r.ok){ $('authErr').textContent = j.error || '操作失败'; return; }
+      setToken(j.token);
+      // 归户：把本机游客暂存的测评并入新账户（转化钩子），随后清除本地游客标识
+      await claimGuestAssessments();
+      closeAuth(); $('authEmailInput').value=''; $('authPwInput').value='';
+      await applyAuthUI();
+      // 登录后若已有作答（如导入后未计算），补算一次映射
+      if(Object.keys(answers).length && !hasResult) computeAll(false, true);
+      if(authMode==='register'){ // 注册后自动保存当前测评（若有）
+        if(hasResult) await doSaveProfile(true);
+      }
+    }catch(e){ $('authErr').textContent = '网络错误：' + (e&&e.message||e); }
+  });
+
+  // 游客归户：登录/注册成功后，把本机用 guest_key 暂存的测评并入当前账户（转化钩子）
+  async function claimGuestAssessments(){
+    const gk = readGuestKey();
+    if(!gk) return;
+    try{
+      const r = await fetch('/api/me/assessments/claim', {
+        method:'POST',
+        headers: Object.assign({'Content-Type':'application/json'}, authHeaders()),
+        body: JSON.stringify({ guestKey: gk })
+      });
+      const j = await r.json();
+      if(j.ok && j.claimed > 0){
+        alert('已将本机暂存的 ' + j.claimed + ' 条测评归入你的账户 ✓（可在「我的测评记录」中查看）');
+      }
+    }catch(e){ /* 归户失败不阻断登录 */ }
+    finally{ clearGuestKey(); }
+  }
+
+  $('logoutBtn').addEventListener('click', async ()=>{
+    try{ await fetch('/api/auth/logout', { method:'POST', headers: authHeaders() }); }catch(e){}
+    clearToken(); await applyAuthUI();
+  });
+
+  // 保存 / 读取云端档案
+  // 保存走 /api/me/assessments：每次追加一条历史（服务端同时刷新覆盖式 profile，供「读取最近一次」用）
+  async function doSaveProfile(silent, title){
+    if(!hasResult){ if(!silent) alert('请先完成作答并计算'); return false; }
+    try{
+      const data = buildExport();
+      if(title) data.title = title;
+      const isGuest = !getToken();
+      const headers = Object.assign({'Content-Type':'application/json'}, isGuest ? guestHeaders() : authHeaders());
+      const r = await fetch('/api/me/assessments', { method:'POST', headers, body: JSON.stringify(data) });
+      const j = await r.json();
+      if(!r.ok){ if(!silent) alert(j.error || '保存失败'); return false; }
+      if(!silent){
+        if(isGuest){
+          document.getElementById('expMsg').textContent = '已暂存到本机（' + (j.title || '未命名') + '）。登录后这条测评会自动归入你的账户。';
+        } else {
+          document.getElementById('expMsg').textContent = '已存为第 ' + j.total + ' 条记录：「' + j.title + '」'
+            + (j.pruned ? '（超出 ' + j.max + ' 条上限，已淘汰最旧 ' + j.pruned + ' 条）' : '');
+        }
+      }
+      return true;
+    }catch(e){ if(!silent) alert('保存失败：' + (e&&e.message||e)); return false; }
+  }
+  $('saveProfile').addEventListener('click', async ()=>{
+    if(!hasResult){ alert('请先完成作答并计算'); return; }
+    // 留空则由服务端用气质关键词自动命名
+    const t = prompt('给这次测评起个名字（留空则用气质关键词自动命名）：', '');
+    if(t === null) return; // 用户取消
+    const ok = await doSaveProfile(false, t.trim());
+    // 游客保存后给一个归户钩子：登录即可把本机暂存的测评并入账户
+    if(ok && !getToken()){
+      if(confirm('已暂存到本机。登录后这条测评会自动归入你的账户，是否现在登录？')) openAuth('login');
+    }
+  });
+  $('loadProfile').addEventListener('click', async ()=>{
+    if(!getToken()){
+      // 游客：读取本机暂存的最新一条（profiles 仅登录用户有）
+      try{
+        const r = await fetch('/api/me/assessments', { headers: guestHeaders() });
+        const j = await r.json();
+        if(!r.ok || !j.items || !j.items.length){ alert('本机暂存暂无测评'); return; }
+        const id = j.items[0].id;
+        const r2 = await fetch('/api/me/assessments?id='+encodeURIComponent(id), { headers: guestHeaders() });
+        const j2 = await r2.json();
+        if(!r2.ok){ alert(j2.error || '读取失败'); return; }
+        const d = j2.data || {};
+        const a = d.engine && d.engine.answers ? d.engine.answers : null;
+        if(!a || !Object.keys(a).length){ alert('该记录无作答数据'); return; }
+        if(d.package) window.__lastPkg = d.package;
+        applyImportData(a, d.engine);
+        alert('已读取本机暂存的最新测评');
+      }catch(e){ alert('读取失败：' + (e&&e.message||e)); }
+      return;
+    }
+    try{
+      const r = await fetch('/api/me/profile', { headers: authHeaders() });
+      const j = await r.json();
+      if(!r.ok){ alert(j.error || '读取失败'); return; }
+      if(!j){ alert('云端暂无已保存的测评'); return; }
+      const a = j.engine && j.engine.answers ? j.engine.answers : (j.answers||null);
+      const meta = j.engine || j;
+      if(!a || !Object.keys(a).length){ alert('云端档案无作答数据'); return; }
+      applyImportData(a, meta);
+      if(j.package) window.__lastPkg = j.package;
+      alert('已读取云端测评并重新计算');
+    }catch(e){ alert('读取失败：' + (e&&e.message||e)); }
+  });
+
+  // ---------- 我的测评记录（时间线：回看 / 重命名 / 删除 / 两条对比）----------
+  const FW_SHORT = { enneagram:'九型', jung:'荣格', astro:'占星', bigfive:'大五' };
+  let histItems = [], cmpSel = [];
+
+  function fmtTime(iso){
+    if(!iso) return '—';
+    const d = new Date(iso);
+    if(isNaN(d)) return iso;
+    return d.toLocaleString('zh-CN', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+  }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+  async function openHist(){
+    cmpSel = [];
+    $('histMask').classList.add('show');
+    $('histList').innerHTML = '<div class="hist-empty">加载中…</div>';
+    $('cmpBox').style.display='none'; $('histMsg').textContent='';
+    await loadHist();
+  }
+  function closeHist(){ $('histMask').classList.remove('show'); }
+
+  async function loadHist(){
+    try{
+      const headers = getToken() ? authHeaders() : guestHeaders();
+      const r = await fetch('/api/me/assessments', { headers });
+      if(r.status===401){ closeHist(); openAuth('login'); return; }
+      const j = await r.json();
+      if(!r.ok){ $('histList').innerHTML = '<div class="hist-empty">读取失败：'+esc(j.error||'')+'</div>'; return; }
+      histItems = j.items || [];
+      $('histCount').textContent = '· 共 ' + histItems.length + ' 条（上限 ' + j.max + '）' + (j.guest ? ' · 本机暂存' : '');
+      renderHist();
+    }catch(e){ $('histList').innerHTML = '<div class="hist-empty">读取失败：'+esc(e&&e.message||e)+'</div>'; }
+  }
+
+  function renderHist(){
+    const box = $('histList');
+    if(!histItems.length){
+      box.innerHTML = '<div class="hist-empty">还没有保存过测评。<br>完成作答后点「保存到云端」即可留下第一条记录。<br>（未登录会暂存到本机，登录后自动归入账户。）</div>';
+      $('cmpBox').style.display='none';
+      return;
+    }
+    box.innerHTML = histItems.map((it,i)=>{
+      const fw = (it.frameworks||[]).map(f=>FW_SHORT[f]||f).join(' / ');
+      const on = cmpSel.indexOf(it.id) >= 0;
+      const isNew = i===0;
+      return '<div class="hist-item'+(on?' sel':'')+'" data-id="'+it.id+'">'
+        + '<input type="checkbox" class="cb" data-cmp="'+it.id+'"'+(on?' checked':'')+'>'
+        + '<div class="hist-main">'
+        +   '<div class="hist-top">'
+        +     (isNew?'<span class="tag tag-new">最新</span>':'<span class="hist-idx">#'+(histItems.length-i)+'</span>')
+        +     '<div class="hist-title">'+esc(it.title)+'</div>'
+        +   '</div>'
+        +   '<div class="hist-meta">'+fmtTime(it.created_at)+' ｜ '+it.answerCount+' 题</div>'
+        +   '<div class="hist-chips">'
+        +     (fw?'<span class="chip">'+esc(fw)+'</span>':'')
+        +     (it.mood?'<span class="chip chip-mood">气质 · '+esc(it.mood)+'</span>':'')
+        +   '</div>'
+        +   '<div class="hist-ops">'
+        +     '<button class="mini" data-act="load" data-id="'+it.id+'">回看此次</button>'
+        +     '<button class="mini" data-act="rename" data-id="'+it.id+'">重命名</button>'
+        +     '<button class="mini" data-act="del" data-id="'+it.id+'">删除</button>'
+        +   '</div>'
+        + '</div></div>';
+    }).join('');
+    renderCmp();
+  }
+
+  // 两条记录的 8 轴对比：同一条轴上并排画两个点位，右侧给差值
+  function renderCmp(){
+    const box = $('cmpBox');
+    if(cmpSel.length !== 2){ box.style.display='none'; return; }
+    const A = histItems.find(x=>x.id===cmpSel[0]), B = histItems.find(x=>x.id===cmpSel[1]);
+    if(!A || !B || !A.vector || !B.vector){
+      box.style.display='block';
+      $('cmpHead').textContent = '所选记录缺少向量数据，无法对比。';
+      $('cmpBars').innerHTML=''; return;
+    }
+    // 早的在前，方便读「从…到…」
+    const [older, newer] = new Date(A.created_at) <= new Date(B.created_at) ? [A,B] : [B,A];
+    box.style.display='block';
+    $('cmpHead').innerHTML = '<span style="color:#b9a6e8">■</span> '+esc(older.title)+'（'+fmtTime(older.created_at)+'）'
+      + ' → <span style="color:var(--acc)">■</span> '+esc(newer.title)+'（'+fmtTime(newer.created_at)+'）';
+    $('cmpBars').innerHTML = DATA.dims.dimensions.map(d=>{
+      const a = older.vector[d.id]||0, b = newer.vector[d.id]||0, dl = b-a;
+      const pa = (a+1)/2*100, pb = (b+1)/2*100;
+      const cls = Math.abs(dl) < 0.005 ? '' : (dl>0?'up':'down');
+      const sign = dl>0?'+':'';
+      return '<div class="cmp-row">'
+        + '<span style="color:var(--mut);text-align:right">'+esc(d.negLabel)+'↔'+esc(d.posLabel)+'</span>'
+        + '<span class="cmp-bar"><i class="a" style="left:'+Math.min(pa,99)+'%;width:3px"></i><i class="b" style="left:'+Math.min(pb,99)+'%;width:3px"></i></span>'
+        + '<span class="cmp-delta '+cls+'">'+sign+dl.toFixed(2)+'</span>'
+        + '</div>';
+    }).join('');
+  }
+
+  $('histList').addEventListener('change', e=>{
+    const id = e.target.getAttribute && e.target.getAttribute('data-cmp');
+    if(!id) return;
+    if(e.target.checked){
+      cmpSel.push(id);
+      if(cmpSel.length > 2) cmpSel.shift(); // 只保留最近勾选的两条
+    } else {
+      cmpSel = cmpSel.filter(x=>x!==id);
+    }
+    renderHist();
+  });
+
+  $('histList').addEventListener('click', async e=>{
+    const btn = e.target.closest && e.target.closest('button[data-act]');
+    if(!btn) return;
+    const id = btn.getAttribute('data-id'), act = btn.getAttribute('data-act');
+    const it = histItems.find(x=>x.id===id);
+    if(act==='load'){
+      $('histMsg').textContent = '载入中…';
+      try{
+        const r = await fetch('/api/me/assessments?id='+encodeURIComponent(id), { headers: authHeaders() });
+        const j = await r.json();
+        if(!r.ok){ $('histMsg').textContent = j.error || '载入失败'; return; }
+        const d = j.data || {};
+        const a = d.engine && d.engine.answers ? d.engine.answers : null;
+        if(!a || !Object.keys(a).length){ $('histMsg').textContent = '该记录无作答数据'; return; }
+        if(d.package) window.__lastPkg = d.package;
+        closeHist();
+        applyImportData(a, d.engine);
+        document.getElementById('expMsg').textContent = '已回看记录「' + (j.title||'') + '」（' + fmtTime(j.created_at) + '）并重新映射';
+      }catch(err){ $('histMsg').textContent = '载入失败：' + (err&&err.message||err); }
+    }
+    else if(act==='rename'){
+      const t = prompt('新名称：', it ? it.title : '');
+      if(t===null) return;
+      const title = t.trim();
+      if(!title){ $('histMsg').textContent='标题不能为空'; return; }
+      const r = await fetch('/api/me/assessments', { method:'PATCH', headers: Object.assign({'Content-Type':'application/json'}, authHeaders()), body: JSON.stringify({ id, title }) });
+      const j = await r.json();
+      if(!r.ok){ $('histMsg').textContent = j.error || '重命名失败'; return; }
+      $('histMsg').textContent = '已重命名';
+      await loadHist();
+    }
+    else if(act==='del'){
+      if(!confirm('删除记录「' + (it?it.title:'') + '」？此操作不可撤销。')) return;
+      const r = await fetch('/api/me/assessments?id='+encodeURIComponent(id), { method:'DELETE', headers: authHeaders() });
+      const j = await r.json();
+      if(!r.ok){ $('histMsg').textContent = j.error || '删除失败'; return; }
+      cmpSel = cmpSel.filter(x=>x!==id);
+      $('histMsg').textContent = '已删除';
+      await loadHist();
+    }
+  });
+
+  $('histBtn').addEventListener('click', openHist);
+  $('histClose').addEventListener('click', closeHist);
+  $('histMask').addEventListener('click', e=>{ if(e.target===$('histMask')) closeHist(); });
+
+  // 启动不自动计算：空白作答算出的结果无意义，且会白耗一次游客额度。
+  // 结果由「③ 计算 / 重新映射」、导入数据或读取云端档案触发。
+  updatePropBar();
+  applyAuthUI();
+})();
+</script>
+<script>
+(function(){
+  var t=document.getElementById('themeToggle');
+  if(!t) return;
+  function apply(theme){
+    if(theme==='dark'){document.documentElement.setAttribute('data-theme','dark');t.textContent='☀️ 切亮色';}
+    else{document.documentElement.removeAttribute('data-theme');t.textContent='🌙 切暗色';}
+  }
+  var saved=localStorage.getItem('aae-theme');
+  if(!saved){saved=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}
+  apply(saved);
+  t.addEventListener('click',function(){
+    var cur=document.documentElement.getAttribute('data-theme')==='dark'?'dark':'light';
+    var next=cur==='dark'?'light':'dark';
+    localStorage.setItem('aae-theme',next);apply(next);
+  });
+})();
+</script>
+<script>
+/* 气质可视化：8 维美学向量 → WebGL 背景
+   将测评算出的 8 维向量作为 uniform 传入着色器，画面随结果/权重实时变化。
+   仅前端、零后端成本；WebGL 不可用时自动回退到原 CSS 背景。*/
+(function(){
+  var canvas=document.getElementById('vecfx');
+  if(!canvas) return;
+  var gl=canvas.getContext('webgl')||canvas.getContext('experimental-webgl');
+  if(!gl){ canvas.style.display='none'; return; }
+
+  var redM = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function sh(type,src){
+    var s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s);
+    if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){ console.warn('vecfx shader:',gl.getShaderInfoLog(s)); return null; }
+    return s;
+  }
+  var VS="attribute vec2 p;void main(){gl_Position=vec4(p,0.0,1.0);}";
+  var FS=[
+    "precision highp float;",
+    "uniform vec2 u_res;uniform float u_time;uniform float u_vec[8];uniform float u_has;",
+    "uniform vec3 u_bg;uniform vec3 u_a1;uniform vec3 u_a2;",
+    "#define PI 3.14159265359",
+    "void main(){",
+    " vec2 uv=(gl_FragCoord.xy-0.5*u_res)/min(u_res.x,u_res.y);",
+    " float r=length(uv);float ang=atan(uv.y,uv.x);float t=u_time*0.18;",
+    " float f=0.5+0.18*(sin(uv.x*2.2+t)+cos(uv.y*2.2-t*0.7)+sin(r*5.0-t*1.2));f=clamp(f,0.0,1.0);",
+    " float petal=0.0;",
+    " for(int i=0;i<8;i++){float fi=float(i);float a=(fi/8.0)*2.0*PI;",
+    "   float m=u_has>0.5?(u_vec[i]+1.0)*0.5:0.0;",
+    "   float pulse=0.92+0.08*sin(t*1.3+fi);",
+    "   float d=cos(ang-a);d=max(d,0.0);",
+    "   petal+=d*d*(0.18+0.9*m)*pulse*exp(-r*(1.3-0.5*m));}",
+    " petal=clamp(petal,0.0,1.4);",
+    " vec3 acc=mix(u_a1,u_a2,f);",
+    " vec3 col=mix(acc,max(u_a1,u_a2)+0.05,petal*0.5);",
+    " float vis=clamp((1.0-smoothstep(0.12,0.95,r))*0.6+petal*0.45,0.0,1.0);",
+    " col=mix(u_bg,col,vis);",
+    " gl_FragColor=vec4(col,1.0);",
+    "}"
+  ].join("\n");
+
+  var vs=sh(gl.VERTEX_SHADER,VS), fs=sh(gl.FRAGMENT_SHADER,FS);
+  if(!vs||!fs){ canvas.style.display='none'; return; }
+  var prog=gl.createProgram(); gl.attachShader(prog,vs); gl.attachShader(prog,fs); gl.linkProgram(prog);
+  if(!gl.getProgramParameter(prog,gl.LINK_STATUS)){ canvas.style.display='none'; return; }
+  gl.useProgram(prog);
+
+  var buf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1, 3,-1, -1,3]),gl.STATIC_DRAW);
+  var loc=gl.getAttribLocation(prog,'p'); gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+
+  var U={ res:gl.getUniformLocation(prog,'u_res'), time:gl.getUniformLocation(prog,'u_time'),
+    vec:gl.getUniformLocation(prog,'u_vec[0]'), has:gl.getUniformLocation(prog,'u_has'),
+    bg:gl.getUniformLocation(prog,'u_bg'), a1:gl.getUniformLocation(prog,'u_a1'), a2:gl.getUniformLocation(prog,'u_a2') };
+
+  function cssColor(name){
+    var d=document.createElement('div'); d.style.color='var('+name+')'; d.style.display='none'; document.body.appendChild(d);
+    var c=getComputedStyle(d).color; d.remove();
+    var m=String(c).match(/\d+/g); if(!m||m.length<3) return [0,0,0];
+    return [parseInt(m[0])/255,parseInt(m[1])/255,parseInt(m[2])/255];
+  }
+  var BG=cssColor('--bg'), A1=cssColor('--acc'), A2=cssColor('--acc2');
+  function refreshColors(){ BG=cssColor('--bg'); A1=cssColor('--acc'); A2=cssColor('--acc2'); if(redM) draw(0); }
+  if(window.MutationObserver){ new MutationObserver(refreshColors).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']}); }
+
+  var dpr=Math.min(window.devicePixelRatio||1,2);
+  function resize(){ var w=innerWidth,h=innerHeight; canvas.width=Math.floor(w*dpr); canvas.height=Math.floor(h*dpr);
+    canvas.style.width=w+'px'; canvas.style.height=h+'px'; gl.viewport(0,0,canvas.width,canvas.height); if(redM) draw(0); }
+  window.addEventListener('resize',resize); resize();
+
+  var cur=new Float32Array(8), tgt=new Float32Array(8), has=0;
+  function draw(time){
+    gl.uniform2f(U.res,canvas.width,canvas.height);
+    gl.uniform1f(U.time,time);
+    gl.uniform1f(U.has,has);
+    gl.uniform3fv(U.bg,new Float32Array(BG));
+    gl.uniform3fv(U.a1,new Float32Array(A1));
+    gl.uniform3fv(U.a2,new Float32Array(A2));
+    gl.uniform1fv(U.vec,cur);
+    gl.drawArrays(gl.TRIANGLES,0,3);
+  }
+  var start=performance.now();
+  function frame(now){
+    var time=(now-start)/1000;
+    for(var i=0;i<8;i++) cur[i]+=(tgt[i]-cur[i])*0.06;
+    draw(time);
+    requestAnimationFrame(frame);
+  }
+  if(redM){ draw(0); } else { requestAnimationFrame(frame); }
+
+  window.VECFX={ setVec:function(arr){
+    if(!arr) return;
+    for(var i=0;i<8;i++){ var v=Number(arr[i]||0); tgt[i]=Math.max(-1,Math.min(1,v)); }
+    has=1;
+    if(redM){ for(var j=0;j<8;j++) cur[j]=tgt[j]; draw(0); }
+  }};
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <radialGradient id="bg" cx="78%" cy="-12%" r="80%">
+      <stop offset="0%" stop-color="#1c2552"/>
+      <stop offset="58%" stop-color="#0b0e1a"/>
+    </radialGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7c8cff"/>
+      <stop offset="100%" stop-color="#46d6c0"/>
+    </linearGradient>
+    <linearGradient id="title" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="70%" stop-color="#7c8cff"/>
+      <stop offset="100%" stop-color="#46d6c0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect x="0" y="0" width="1200" height="630" fill="none"/>
+
+  <!-- 品牌行 -->
+  <g transform="translate(96,120)">
+    <circle cx="14" cy="14" r="13" fill="url(#accent)"/>
+    <text x="44" y="23" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="30" font-weight="700" fill="#eaeefb">AI 审美系统</text>
+  </g>
+
+  <!-- 主标题 -->
+  <text x="96" y="320" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="84" font-weight="800" fill="url(#title)">用 AI 量化人类的</text>
+  <text x="96" y="420" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="84" font-weight="800" fill="url(#title)">审美偏好</text>
+
+  <!-- 英文副标题 -->
+  <text x="98" y="478" font-family="Helvetica, Arial, sans-serif" font-size="26" letter-spacing="4" fill="#9aa6cc">AI AESTHETIC INTELLIGENCE</text>
+
+  <!-- 分隔与域名 -->
+  <rect x="98" y="516" width="64" height="4" rx="2" fill="url(#accent)"/>
+  <text x="98" y="566" font-family="Helvetica, Arial, sans-serif" font-size="24" fill="#46d6c0">imagemythos.fun</text>
+</svg>

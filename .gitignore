@@ -1,0 +1,57 @@
+# ===== 密钥 / 环境变量（绝不提交） =====
+.env
+.env.*
+!.env.example
+*.local.env
+
+# ===== 数据库（含用户数据，绝不提交） =====
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# ===== 运行时产物 / 缓存 =====
+backups/
+logs/
+3d-models/
+videos/
+share-images/
+share-models/
+node_modules/
+.DS_Store
+
+# ===== 误执行命令残留的垃圾目录（不要提交） =====
+/root@8.217.214.194:/
+/ssh -i ~/
+/-az/
+/-e/
+/=== 本地备份文件 ===/
+/backupsnDATE=20260811nrsync/
+/.3d_gen/
+
+# ===== 与部署无关的研究 / 素材 / 内部目录 =====
+/workbuddy/
+art/
+盲审/
+AI审美系统_*/
+竞品扫描报告.md
+用户访谈*.md
+题库*.md
+G2*.md
+MVP*.md
+神圣理念_*.md
+显示功能增强方案.md
+menu.md
+_g2_*.mjs
+dedup_respondents.mjs
+diag_jimeng.cjs
+console.html
+
+# 问卷系统下的非部署内容（图片素材、样本数据、诊断脚本、平台启动器）
+问卷系统/神圣理念图像/
+问卷系统/筛选问卷/
+问卷系统/*.cjs
+问卷系统/启动.command
+问卷系统/启动.bat
+问卷系统/.DS_Store

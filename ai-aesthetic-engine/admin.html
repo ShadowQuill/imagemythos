@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>管理后台 · AI 审美系统</title>
+<style>
+  :root{
+    --bg:#f6f5f2; --card:#ffffff; --ink:#2b2b2b; --mut:#88807a;
+    --line:#e6e2dc; --acc:#8a6df0; --acc2:#f0a6c0; --pos:#c0392b; --neg:#1f8a70;
+    --warn:#e8a33d; --grid:#efece8; --chart-ink:#5a534d;
+  }
+  [data-theme="dark"]{
+    color-scheme:dark;
+    --bg:#15171f; --card:#1c1f2b; --ink:#e9e6f2; --mut:#9a93ab;
+    --line:#2c3142; --acc:#a48bff; --acc2:#f0a6c0; --pos:#5fcf9a; --neg:#ff7a6b;
+    --warn:#e8a33d; --grid:#2a2f45; --chart-ink:#b9b3c4;
+  }
+  [data-theme="dark"] .stat{background:linear-gradient(180deg,#222633,#1c1f2b);border-color:var(--line)}
+  [data-theme="dark"] .stat.hl{background:linear-gradient(180deg,#241f3a,#1c1f2b);border-color:#3a2f5e}
+  [data-theme="dark"] th,[data-theme="dark"] tr:hover td,[data-theme="dark"] .detail{background:#20232f}
+  [data-theme="dark"] .anon{background:#241f2e;border-color:#3a2f3e}
+  [data-theme="dark"] .mini{background:#241f3a;color:#c9b8ff;border-color:#3a2f5e}
+  [data-theme="dark"] .mini.danger{background:#3a2026;color:#ff8e84;border-color:#5e2f33}
+  [data-theme="dark"] .badge{background:#2a2342;color:#c9b8ff}
+  [data-theme="dark"] .badge.adm{background:#3a2030;color:#f0a6c0}
+  [data-theme="dark"] .bad{background:#2a2540;color:var(--mut);border-color:#34294e}
+  [data-theme="dark"] .bad.expired{background:#3a2030;color:#ff9ec4;border-color:#5a3a48}
+  [data-theme="dark"] .gate input{background:#20232f;color:var(--ink);border-color:var(--line)}
+  [data-theme="dark"] .msg.ok{background:#16302a;color:#5fcf9a;border-color:#1f4a3e}
+  [data-theme="dark"] .msg.err{background:#321c1c;color:#ff8e84;border-color:#5e3333}
+  [data-theme="dark"] .bar{background:#2c3142}
+  [data-theme="dark"] .bar i{background:linear-gradient(90deg,#5fcf9a,#e8a33d)}
+  [data-theme="dark"] body{background:var(--bg)}
+  [data-theme="dark"] .tag{background:#2a2740;color:#b9b3c4}
+  [data-theme="dark"] .tag.adm{background:#3a2030;color:#f0a6c0}
+  [data-theme="dark"] .tag.you{background:#16302a;color:#5fcf9a}
+  [data-theme="dark"] .tag.lock{background:#2a2410;color:#f0d28a;border-color:#5a4a10}
+  html,body{transition:background .25s,color .25s}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6}
+  .wrap{max-width:1080px;margin:0 auto;padding:20px 18px 80px}
+  .top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+  h1{font-size:22px;margin:0;background:linear-gradient(90deg,#8a6df0,#f0a6c0);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .badge{font-size:11px;padding:2px 9px;border-radius:999px;background:#efeafc;color:#6a4fd0}
+  .badge.adm{background:#fdeaf1;color:#c0508a}
+  .bad{font-size:11px;padding:2px 9px;border-radius:999px;background:#f3f0fb;color:var(--mut);border:1px solid #e6e0f7;white-space:nowrap}
+  .bad.expired{background:#fff1f0;color:#a8071a;border-color:#ffccc7}
+  .sub{color:var(--mut);font-size:13px;margin-bottom:18px}
+  .back{color:var(--acc);text-decoration:none;font-size:13px}
+  .back:hover{text-decoration:underline}
+  .home-link{display:inline-flex;align-items:center;gap:6px;background:var(--acc);color:#fff;text-decoration:none;
+    border:1px solid var(--acc);border-radius:9px;padding:7px 14px;cursor:pointer;font-size:13px;font-weight:600;
+    box-shadow:0 1px 3px rgba(138,109,240,.35);transition:.18s;white-space:nowrap}
+  .home-link:hover{filter:brightness(1.07);box-shadow:0 2px 8px rgba(138,109,240,.45)}
+  [data-theme="dark"] .home-link{box-shadow:0 1px 4px rgba(164,139,255,.4)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px;
+    box-shadow:0 1px 2px rgba(20,16,40,.04),0 10px 30px rgba(40,30,80,.05)}
+  .card h2{font-size:16px;margin:0 0 12px;font-weight:600}
+  .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  .stat{background:linear-gradient(180deg,#fff,#fbfafd);border:1px solid var(--line);border-radius:12px;padding:12px 14px;
+    transition:transform .15s ease, box-shadow .15s ease}
+  .stat:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(138,109,240,.16)}
+  .stat .n{font-size:24px;font-weight:600;line-height:1.2}
+  .stat .l{font-size:12px;color:var(--mut);margin-top:2px}
+  .stat.hl{background:linear-gradient(180deg,#f6f1ff,#fbf7ff);border-color:#e6dcfb}
+  .stat.hl .n{color:var(--acc)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+  th{font-size:12px;color:var(--mut);font-weight:500;background:#fbfaf8}
+  tr:hover td{background:#fbfaf8}
+  .email{font-weight:500}
+  .mono{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:var(--mut)}
+  .tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;background:#eee;color:#666;margin-left:4px}
+  .tag.adm{background:#fdeaf1;color:#c0508a}
+  .tag.you{background:#eaf5ef;color:#1f8a70}
+  .tag.lock{background:#fff7e6;color:#8a5a00}
+  .mini{background:#efeafc;color:#5a3fc0;border:1px solid #ddd3f7;border-radius:8px;
+    padding:4px 10px;font-size:12px;cursor:pointer;margin:2px 3px 2px 0}
+  .mini:hover{filter:brightness(1.03)}
+  .mini.danger{background:#fdecea;color:#c0392b;border-color:#f5c6c0}
+  .mini:disabled{opacity:.4;cursor:not-allowed}
+  .bar{position:relative;height:6px;background:#eee;border-radius:3px;overflow:hidden;margin-top:3px;width:90px}
+  .bar i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#1f8a70,#e8a33d);border-radius:3px}
+  .msg{font-size:13px;padding:9px 12px;border-radius:10px;margin-bottom:12px;display:none}
+  .msg.ok{background:#eaf5ef;color:#1f8a70;border:1px solid #c5e5d5;display:block}
+  .msg.err{background:#fdecea;color:#c0392b;border:1px solid #f5c6c0;display:block}
+  .gate{max-width:420px;margin:60px auto;text-align:center}
+  .gate input{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;
+    font-size:14px;margin-bottom:9px;font-family:inherit}
+  .gate button{width:100%;background:var(--acc);color:#fff;border:none;border-radius:9px;
+    padding:10px;font-size:15px;cursor:pointer}
+  .muted{color:var(--mut);font-size:12px}
+  .detail{background:#fbfaf8;border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:10px;font-size:13px;display:none}
+  .detail .row{margin:4px 0}
+  .detail pre{white-space:pre-wrap;word-break:break-all;font-size:11px;color:var(--mut);margin:4px 0 0}
+  .anon{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:13px;
+    background:#fff7e6;border:1px solid #ffe0a3;border-radius:10px;padding:10px 12px}
+  .tblwrap{overflow-x:auto}
+  .trend{margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+  .trend h3{font-size:13px;color:var(--mut);margin:0 0 8px;font-weight:500}
+  .trend .sum{font-size:12px;color:var(--mut);margin-left:8px}
+  .trend canvas{width:100%;height:210px}
+  .charts{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+  .chartbox{display:flex;flex-direction:column;min-width:0}
+  .chartbox h3{font-size:13px;color:var(--mut);margin:0 0 8px;font-weight:500}
+  .chartbox canvas{width:100%;height:240px}
+  .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--mut);margin-top:6px}
+  .legend span{display:inline-flex;align-items:center;gap:4px}
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+  @media (max-width:720px){
+    .wrap{padding:14px 12px 60px}
+    .top{gap:8px}
+    h1{width:100%}
+    .top span[style*="margin-left:auto"]{margin-left:0!important;width:100%;display:flex;justify-content:flex-end}
+    th,td{padding:7px 6px;font-size:12px}
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .charts{grid-template-columns:1fr}
+    .chartbox canvas{height:200px}
+    .trend canvas{height:170px}
+  }
+  /* 分享卡预览弹窗 */
+  .modal-overlay{position:fixed;inset:0;background:rgba(8,6,16,.72);backdrop-filter:blur(4px);
+    display:none;align-items:center;justify-content:center;z-index:9999;padding:24px}
+  .modal-overlay.open{display:flex}
+  .modal-box{width:min(960px,96vw);height:min(88vh,900px);background:var(--bg,#13111c);
+    border:1px solid rgba(255,255,255,.12);border-radius:14px;overflow:hidden;
+    display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,.55)}
+  .modal-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;
+    border-bottom:1px solid rgba(255,255,255,.1);font-size:13px;color:var(--muted,#9b94b3)}
+  .modal-bar code{color:var(--accent,#b388ff);font-size:12px}
+  .modal-bar .x{margin-left:auto;cursor:pointer;border:none;background:rgba(255,255,255,.08);
+    color:#fff;width:30px;height:30px;border-radius:8px;font-size:16px;line-height:1}
+  .modal-bar .x:hover{background:rgba(255,255,255,.18)}
+  .modal-frame{flex:1;border:0;width:100%;background:#fff}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 未登录 / 非管理员：拦截门 -->
+  <div id="gate" class="gate" style="display:none">
+    <h1>管理后台</h1>
+    <div class="sub" id="gateMsg">请使用管理员账户登录</div>
+    <div id="gateForm">
+      <input id="gEmail" type="email" placeholder="邮箱" autocomplete="username">
+      <input id="gPw" type="password" placeholder="密码" autocomplete="current-password">
+      <button id="gBtn">登录</button>
+      <div class="msg" id="gErr"></div>
+    </div>
+    <div style="margin-top:16px"><a class="back" href="index.html">← 返回测评主页</a></div>
+  </div>
+
+  <!-- 主体 -->
+  <div id="main" style="display:none">
+    <div class="top">
+      <h1>管理后台</h1>
+      <span class="badge adm">管理员</span>
+      <span class="badge" id="meEmail"></span>
+      <span style="margin-left:auto;display:flex;align-items:center;gap:10px">
+        <a class="home-link" href="index.html">← 测评主页</a>
+        <button class="mini" id="themeBtn">暗色</button>
+        <button class="mini" id="refreshBtn">刷新</button>
+        <button class="mini" id="logoutBtn">登出</button>
+      </span>
+    </div>
+    <div class="sub">用户、用量与数据总览。本系统无付费/套餐，管理员仅用于运营观察与账户管理。</div>
+
+    <div class="msg" id="msg"></div>
+
+    <div class="card">
+      <h2>总览</h2>
+    <div class="stats" id="stats"></div>
+    <div class="trend" id="trend" style="display:none">
+      <h3>近 14 天活跃趋势 <span class="sum" id="trendSum"></span></h3>
+      <canvas id="chartTrend"></canvas>
+      <div class="legend" id="trendLegend" style="margin-top:8px"></div>
+    </div>
+    <div class="charts" id="charts" style="display:none">
+      <div class="chartbox">
+        <h3>核心指标对比</h3>
+        <canvas id="chartBar"></canvas>
+      </div>
+      <div class="chartbox">
+        <h3>测评来源构成</h3>
+        <canvas id="chartPie"></canvas>
+      </div>
+    </div>
+    <div class="muted" id="statsNote" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card">
+      <h2>数据备份 <span class="muted" id="backupMeta"></span></h2>
+      <div class="anon" style="margin-bottom:10px">
+        <span id="backupState">—</span>
+        <span style="margin-left:auto;display:flex;gap:8px">
+          <button class="mini danger" id="backupBatchDel" disabled>批量删除选中</button>
+          <button class="mini" id="backupCleanup">清理旧备份</button>
+          <button class="mini" id="backupNow">立即备份</button>
+        </span>
+      </div>
+      <div class="tblwrap">
+        <table>
+          <thead><tr><th style="width:36px"><input type="checkbox" id="backupSelAll" title="全选"></th><th>备份文件</th><th>大小</th><th>生成时间</th><th>操作</th></tr></thead>
+          <tbody id="backupRows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>匿名体验池</h2>
+      <div class="anon">
+        <span>未登录访客共享一份全局出图额度</span>
+        <b id="anonUsed">—</b>
+        <span class="muted" id="anonAt"></span>
+        <button class="mini" id="anonReset" style="margin-left:auto">清零匿名用量</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>游客试用 <span class="muted" id="trialDay"></span></h2>
+      <div class="anon" style="margin-bottom:10px">
+        <span>未登录访客按 IP 每日限额调用映射引擎，登录后不限次</span>
+        <button class="mini" id="trialResetToday" style="margin-left:auto">清空今日</button>
+        <button class="mini" id="trialResetAll">清空全部</button>
+      </div>
+      <div class="tblwrap">
+        <table>
+          <thead><tr><th>访客 IP</th><th>引擎调用</th><th>场景调用</th><th>出图(张)</th><th>最近活动</th></tr></thead>
+          <tbody id="trialRows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>用户 <span class="muted" id="userCount"></span><button class="mini" id="exportCsv" style="margin-left:10px">导出 CSV</button></h2>
+      <div class="tblwrap">
+        <table>
+          <thead><tr>
+            <th>邮箱</th><th>注册时间</th><th>出图用量</th><th>测评记录</th><th>在线</th><th>操作</th>
+          </tr></thead>
+          <tbody id="userRows"></tbody>
+        </table>
+      </div>
+      <div class="detail" id="detail"></div>
+    </div>
+
+    <div class="card">
+      <h2>分享管理 <span class="muted" id="shareCount"></span></h2>
+      <div class="tblwrap">
+        <table>
+          <thead><tr>
+            <th>标题</th><th>ID</th><th>所有者</th><th>创建时间</th><th>有效期</th><th>浏览</th><th>操作</th>
+          </tr></thead>
+          <tbody id="shareRows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 分享卡预览弹窗 -->
+<div class="modal-overlay" id="shareModal">
+  <div class="modal-box">
+    <div class="modal-bar">
+      <span>分享卡预览</span>
+      <code id="shareModalId">—</code>
+      <button class="x" id="shareModalClose" title="关闭">×</button>
+    </div>
+    <iframe class="modal-frame" id="shareModalFrame" src="about:blank" title="分享卡预览"></iframe>
+  </div>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const TOKEN_KEY = 'aae_token';
+  let token = localStorage.getItem(TOKEN_KEY) || '';
+  let me = null, cache = null, statsCache = null;
+
+  const H = () => Object.assign({'Content-Type':'application/json'}, token ? {Authorization:'Bearer '+token} : {});
+  const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const fmt = t => { if(!t) return '—'; const d=new Date(t); return isNaN(d)?'—':
+    (d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+
+     String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')); };
+
+  function flash(text, isErr){
+    const m = $('msg');
+    m.textContent = text;
+    m.className = 'msg ' + (isErr ? 'err' : 'ok');
+    setTimeout(()=>{ m.className='msg'; }, 3500);
+  }
+
+  // ---------- 进入校验：必须是已登录的管理员 ----------
+  async function boot(){
+    if(!token){ showGate('请使用管理员账户登录'); return; }
+    try{
+      const r = await fetch('/api/auth/me', { headers: H() });
+      if(!r.ok){ token=''; localStorage.removeItem(TOKEN_KEY); showGate('登录已过期，请重新登录'); return; }
+      const j = await r.json();
+      me = j.user;
+      if(!me.is_admin){ showGate('账户 '+me.email+' 不是管理员，无权访问本页'); return; }
+      $('gate').style.display='none';
+      $('main').style.display='block';
+      $('meEmail').textContent = me.email;
+      await loadAll();
+    }catch(e){ showGate('无法连接后端服务：'+(e&&e.message||e)); }
+  }
+
+  function showGate(msg){
+    $('gate').style.display='block';
+    $('main').style.display='none';
+    $('gateMsg').textContent = msg;
+  }
+
+  $('gBtn').addEventListener('click', async ()=>{
+    const email = $('gEmail').value.trim(), pw = $('gPw').value;
+    const err = $('gErr');
+    if(!email || !pw){ err.textContent='请填写邮箱与密码'; err.className='msg err'; return; }
+    try{
+      const r = await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({email,password:pw})});
+      const j = await r.json();
+      if(!r.ok){ err.textContent = j.error||'登录失败'; err.className='msg err'; return; }
+      if(!j.user.is_admin){ err.textContent='该账户不是管理员'; err.className='msg err'; return; }
+      token = j.token; localStorage.setItem(TOKEN_KEY, token);
+      err.className='msg';
+      await boot();
+    }catch(e){ err.textContent='请求失败：'+(e&&e.message||e); err.className='msg err'; }
+  });
+  $('gPw').addEventListener('keydown', e=>{ if(e.key==='Enter') $('gBtn').click(); });
+
+  $('logoutBtn').addEventListener('click', async ()=>{
+    try{ await fetch('/api/auth/logout',{method:'POST',headers:H()}); }catch(e){}
+    token=''; localStorage.removeItem(TOKEN_KEY);
+    showGate('已登出');
+  });
+  $('refreshBtn').addEventListener('click', ()=>loadAll());
+
+  // ---------- 深色模式 ----------
+  function applyTheme(t){
+    document.documentElement.dataset.theme = t;
+    try{ localStorage.setItem('aae_theme', t); }catch(e){}
+    if(statsCache) renderCharts(statsCache); // 重绘图表以适配新配色
+    $('themeBtn').textContent = t === 'dark' ? '亮色' : '暗色';
+  }
+  (function initTheme(){
+    let t = null;
+    try{ t = localStorage.getItem('aae_theme'); }catch(e){}
+    if(!t) t = (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+    document.documentElement.dataset.theme = t;
+    $('themeBtn').textContent = t === 'dark' ? '亮色' : '暗色';
+  })();
+  $('themeBtn').addEventListener('click', ()=>{
+    const cur = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+    applyTheme(cur === 'dark' ? 'light' : 'dark');
+  });
+
+  // ---------- 导出用户表 CSV ----------
+  $('exportCsv').addEventListener('click', ()=>{
+    if(!cache || !cache.users || !cache.users.length){ flash('暂无可导出的用户数据', true); return; }
+    const head = ['邮箱','注册时间','出图用量','测评记录','在线会话','是否管理员','.env锁定'];
+    const lines = [head.join(',')];
+    cache.users.forEach(u=>{
+      lines.push([
+        '"'+String(u.email||'').replace(/"/g,'""')+'"',
+        u.created_at||'',
+        u.is_admin?'无限':(u.imageUsed||0),
+        (u.assessmentCount||0),
+        (u.liveSessions>0?u.liveSessions:0),
+        u.is_admin?'是':'',
+        u.is_protected?'是':''
+      ].join(','));
+    });
+    const csv = '﻿' + lines.join('\r\n'); // BOM 防 Excel 中文乱码
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'aae_users_'+new Date().toISOString().slice(0,10)+'.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(a.href);
+    flash('已导出 '+cache.users.length+' 个账户为 CSV', false);
+  });
+
+  // ---------- 数据加载 ----------
+  async function loadAll(){
+    try{
+      const [s, u, t, b] = await Promise.all([
+        fetch('/api/admin/stats',{headers:H()}).then(r=>r.json()),
+        fetch('/api/admin/users',{headers:H()}).then(r=>r.json()),
+        fetch('/api/admin/trial',{headers:H()}).then(r=>r.json()),
+        fetch('/api/admin/backups',{headers:H()}).then(r=>r.json())
+      ]);
+      cache = u;
+      statsCache = s;
+      renderStats(s);
+      renderAnon(u.anonymous);
+      renderUsers(u.users);
+      renderTrial(t);
+      renderBackups(b);
+      loadShares();
+    }catch(e){ flash('加载失败：'+(e&&e.message||e), true); }
+  }
+
+  // ---------- 分享卡管理（列表 + 管理员删除）----------
+  async function loadShares(){
+    try{
+      const r = await fetch('/api/admin/shares',{headers:H()});
+      if(!r.ok) return;
+      const j = await r.json();
+      renderShares(j.shares || []);
+    }catch(e){ /* 非核心模块，失败静默 */ }
+  }
+
+  function renderShares(list){
+    $('shareCount').textContent = '共 ' + list.length + ' 张';
+    if(!list.length){
+      $('shareRows').innerHTML = '<tr><td colspan="7" class="muted">暂无分享卡片</td></tr>';
+      return;
+    }
+    $('shareRows').innerHTML = list.map(s=>{
+      const expTxt = s.expires_at
+        ? (s.expired ? '<span class="bad expired">已过期 '+esc(s.expires_at.slice(0,10))+'</span>'
+                     : '至 '+esc(s.expires_at.slice(0,10)))
+        : '永久';
+      return '<tr>'+
+        '<td class="mono">'+esc(s.title||'(无标题)')+'</td>'+
+        '<td class="mono">'+esc(s.id)+'</td>'+
+        '<td class="mono">'+(s.owner_id?esc(s.owner_id.slice(0,8)):'匿名')+'</td>'+
+        '<td class="mono">'+esc((s.created_at||'').slice(0,16).replace('T',' '))+'</td>'+
+        '<td>'+expTxt+'</td>'+
+        '<td>'+s.views+'</td>'+
+        '<td><button class="mini view-share" data-id="'+esc(s.id)+'">查看</button>'+
+        ' <button class="mini ext-share" data-id="'+esc(s.id)+'">延长</button>'+
+        ' <button class="mini danger del-share" data-id="'+esc(s.id)+'">删除</button></td>'+
+      '</tr>';
+    }).join('');
+  }
+
+  // 分享卡预览弹窗控制
+  const shareModal = $('shareModal');
+  const shareModalFrame = $('shareModalFrame');
+  const shareModalId = $('shareModalId');
+  function openShareModal(id){
+    shareModalId.textContent = id;
+    shareModalFrame.src = '/ai-aesthetic-engine/share.html?id=' + encodeURIComponent(id);
+    shareModal.classList.add('open');
+  }
+  function closeShareModal(){
+    shareModal.classList.remove('open');
+    shareModalFrame.src = 'about:blank';
+  }
+  $('shareModalClose').addEventListener('click', closeShareModal);
+  shareModal.addEventListener('click', (e)=>{ if(e.target === shareModal) closeShareModal(); });
+  document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape' && shareModal.classList.contains('open')) closeShareModal(); });
+
+  // 事件委托：分享列表 查看 / 删除 / 延长有效期
+  document.getElementById('shareRows').addEventListener('click', async (e)=>{
+    const viewBtn = e.target.closest('.view-share');
+    if(viewBtn){ openShareModal(viewBtn.getAttribute('data-id')); return; }
+    const delBtn = e.target.closest('.del-share');
+    if(delBtn){
+      const id = delBtn.getAttribute('data-id');
+      if(!confirm('确认删除分享卡 '+id+'？该操作不可撤销，磁盘配图也会一并清除。')) return;
+      delBtn.disabled = true;
+      try{
+        const r = await fetch('/api/share/'+encodeURIComponent(id),{method:'DELETE',headers:H()});
+        const j = await r.json().catch(()=>({}));
+        if(!r.ok){ flash(j.error||'删除失败', true); delBtn.disabled = false; return; }
+        flash('已删除分享卡 '+id, false);
+        loadShares();
+      }catch(err){ flash('删除失败：'+(err&&err.message||err), true); delBtn.disabled = false; }
+      return;
+    }
+    const extBtn = e.target.closest('.ext-share');
+    if(extBtn){
+      const id = extBtn.getAttribute('data-id');
+      const choice = prompt('延长分享卡 ['+id+'] 有效期：\n输入数字=延长天数（如 30），或输入 forever=永久有效', '30');
+      if(choice === null) return;
+      let mode, label;
+      if(/^forever$/i.test(choice.trim())){ mode='forever'; label='永久有效'; }
+      else { const d = parseInt(choice, 10); if(!(d>0)){ flash('请输入正整数天数或 forever', true); return; } mode='add'+d; label='+'+d+' 天'; }
+      extBtn.disabled = true;
+      try{
+        const r = await fetch('/api/admin/share/'+encodeURIComponent(id)+'/expire',{method:'POST',headers:H(),body:JSON.stringify({mode})});
+        const j = await r.json().catch(()=>({}));
+        if(!r.ok || !j.ok){ flash('延长失败：'+(j.error||r.status), true); extBtn.disabled = false; return; }
+        flash('已延长分享卡 '+id+' 有效期 → '+label, false);
+        loadShares();
+      }catch(err){ flash('延长失败：'+(err&&err.message||err), true); extBtn.disabled = false; }
+      return;
+    }
+  });
+
+  function renderStats(s){
+    const items = [
+      ['注册用户', s.userCount, true],
+      ['近 7 天新增', s.newUsers7d, false],
+      ['管理员', s.adminCount, false],
+      ['当前在线会话', s.liveSessions, false],
+      ['测评记录总数', s.assessmentCount, true],
+      ['近 7 天测评', s.assessments7d, false],
+      ['游客暂存测评', s.guestAssessmentCount, false],
+      ['游客独立设备', s.guestKeys, false],
+      ['有档案的账户', s.profileCount, false],
+      ['出图总次数', s.imgTotal, true],
+      ['· 其中匿名消耗', s.imgAnon, false],
+      ['游客出图池(全局/日)', s.anonImgLimit, false],
+      ['游客出图/IP·日', s.anonImgPerIp, false],
+      ['今日游客 IP', s.trialIPsToday, true],
+      ['今日试用调用', s.trialCallsToday, false],
+      ['公开分享卡片', s.shareCount, true],
+      ['分享总浏览', s.shareViews, false],
+      ['问卷受访者库', s.respondents, false]
+    ];
+    $('stats').innerHTML = items.map(([l,n,hl])=>
+      '<div class="stat'+(hl?' hl':'')+'"><div class="n">'+n+'</div><div class="l">'+esc(l)+'</div></div>').join('');
+    $('statsNote').innerHTML = '单账户出图上限 <b>'+s.quotaLimit+'</b> 次（管理员不限）｜游客出图：全局池 <b>'+s.anonImgLimit+'</b> 张/日 + 单 IP <b>'+s.anonImgPerIp+'</b> 张/日 双层约束｜游客每日引擎试用 <b>'+s.trialLimit+'</b> 次/IP（今日 '+s.trialExhausted+' 个 IP 已用尽）｜映射引擎：'+
+      (s.engineReady?'<b style="color:#1f8a70">已就绪（服务端运行）</b>':'<b style="color:#c0392b">未就绪</b>')+
+      '｜ADMIN_EMAIL：'+(s.adminEmail?'<code>'+esc(s.adminEmail)+'</code>':'<span style="color:#c0392b">未配置（首个注册者自动成管理员）</span>')+
+      '<br>限流：本次启动以来拦截 <b>'+(s.rateLimitBlocked||0)+'</b> 次请求，当前活跃计数窗口 '+(s.rateLimitWindows||0)+' 个（管理员豁免；计数在内存，重启清零）';
+    renderCharts(s);
+  }
+
+  function renderCharts(s){
+    const wrap = $('charts');
+    if(!s || !wrap) return;
+    wrap.style.display = 'grid';
+    drawBar($('chartBar'), s);
+    drawPie($('chartPie'), s);
+    const tw = $('trend');
+    if(tw && s.trend){
+      tw.style.display = 'block';
+      const sum = s.trend.reduce((a,d)=>a+d.count,0);
+      const isum = (s.imageTrend||[]).reduce((a,d)=>a+d.count,0);
+      $('trendSum').textContent = '测评 '+sum+' 份 · 出图 '+isum+' 张';
+      drawTrend($('chartTrend'), s);
+      $('trendLegend').innerHTML = '<span><i class="dot" style="background:#8a6df0"></i>测评记录</span><span><i class="dot" style="background:#f0a6c0"></i>出图次数</span>';
+    }
+  }
+
+  function setupCanvas(c){
+    const dpr = window.devicePixelRatio || 1;
+    const rect = c.getBoundingClientRect();
+    const w = Math.max(rect.width, 220), h = Math.max(rect.height, 160);
+    c.width = Math.floor(w * dpr);
+    c.height = Math.floor(h * dpr);
+    const ctx = c.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    return {ctx, w, h};
+  }
+
+  function lighten(hex){
+    const n = parseInt(hex.slice(1),16);
+    const r = Math.min(255, ((n>>16)&255)+55);
+    const g = Math.min(255, ((n>>8)&255)+55);
+    const b = Math.min(255, (n&255)+55);
+    return 'rgb('+r+','+g+','+b+')';
+  }
+
+  function drawBar(c, s){
+    if(!c) return;
+    const {ctx,w,h} = setupCanvas(c);
+    ctx.clearRect(0,0,w,h);
+    const data = [
+      ['测评记录', s.assessmentCount||0, '#8a6df0'],
+      ['出图次数', s.imgTotal||0, '#f0a6c0'],
+      ['注册用户', s.userCount||0, '#6a9ef0'],
+      ['受访者库', s.respondents||0, '#e8a33d'],
+      ['分享卡片', s.shareCount||0, '#1f8a70']
+    ];
+    const max = Math.max.apply(null, data.map(d=>d[1]).concat([1]));
+    const pad = {l:80,r:46,t:18,b:18};
+    const cw = w - pad.l - pad.r, ch = h - pad.t - pad.b;
+    const bh = Math.max(18, (ch - (data.length-1)*12)/data.length);
+    data.forEach((d,i)=>{
+      const y = pad.t + i*(bh+12);
+      const bw = (d[1]/max)*cw;
+      const g = ctx.createLinearGradient(pad.l,y,pad.l+bw,y);
+      g.addColorStop(0, d[2]); g.addColorStop(1, lighten(d[2]));
+      ctx.fillStyle = g;
+      ctx.fillRect(pad.l, y, bw, bh);
+      ctx.fillStyle = cssVar('--chart-ink','#5a534d'); ctx.font='11px sans-serif'; ctx.textBaseline='middle'; ctx.textAlign='right';
+      ctx.fillText(d[0], pad.l-8, y+bh/2);
+      ctx.fillStyle = cssVar('--ink','#2b2b2b'); ctx.textAlign='left';
+      ctx.fillText(String(d[1].toLocaleString()), pad.l+bw+8, y+bh/2);
+    });
+  }
+
+  function drawPie(c, s){
+    if(!c) return;
+    const {ctx,w,h} = setupCanvas(c);
+    ctx.clearRect(0,0,w,h);
+    const total = s.assessmentCount||0;
+    if(total === 0){
+      ctx.fillStyle=cssVar('--chart-ink','#888'); ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='13px sans-serif';
+      ctx.fillText('暂无测评数据', w/2, h/2);
+      return;
+    }
+    const guest = s.guestAssessmentCount||0, user = total - guest;
+    const data = [['登录用户', user, '#8a6df0'], ['游客暂存', guest, '#e8a33d']];
+    const sum = total, cx = w/2, cy = h/2 - 6, r = Math.min(w,h)/2 - 30, hole = r*0.56;
+    let ang = -Math.PI/2;
+    data.forEach(d=>{
+      const slice = (d[1]/sum)*Math.PI*2;
+      if(slice>0){
+        ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,ang,ang+slice); ctx.closePath();
+        ctx.fillStyle=d[2]; ctx.fill();
+      }
+      ang += slice;
+    });
+    ctx.beginPath(); ctx.arc(cx,cy,hole,0,Math.PI*2); ctx.fillStyle='#fff'; ctx.fill();
+    ctx.fillStyle=cssVar('--ink','#2b2b2b'); ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.font='bold 18px sans-serif';
+    ctx.fillText(total.toLocaleString(), cx, cy-2);
+    ctx.font='11px sans-serif'; ctx.fillStyle=cssVar('--chart-ink','#888'); ctx.fillText('测评总数', cx, cy+14);
+    let lx = 12; const ly = h - 16;
+    ctx.textBaseline='middle';
+    data.forEach(d=>{
+      ctx.fillStyle=d[2]; ctx.beginPath(); ctx.arc(lx+5,ly,5,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle=cssVar('--chart-ink','#5a534d'); ctx.textAlign='left'; ctx.font='12px sans-serif';
+      const t = d[0]+' '+d[1];
+      ctx.fillText(t, lx+14, ly);
+      lx += ctx.measureText(t).width + 24;
+    });
+  }
+
+  function cssVar(name, fallback){
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return v || fallback;
+  }
+  function hexA(hex, a){
+    const n = parseInt(hex.slice(1), 16);
+    return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';
+  }
+  function drawTrend(c, s){
+    if(!c) return;
+    const {ctx,w,h} = setupCanvas(c);
+    ctx.clearRect(0,0,w,h);
+    const labels = (s.trend||[]).map(d=>d.date);
+    if(!labels.length) return;
+    const series = [
+      { key:'trend', color:'#8a6df0' },
+      { key:'imageTrend', color:'#f0a6c0' }
+    ].map(d => ({ ...d, data:(s[d.key]||[]).map(x=>x.count) }));
+    const allMax = Math.max.apply(null, series.flatMap(se=>se.data).concat([1]));
+    const pad = {l:32,r:14,t:14,b:26};
+    const cw = w-pad.l-pad.r, ch = h-pad.t-pad.b;
+    const ink = cssVar('--chart-ink','#5a534d');
+    const grid = cssVar('--grid','#efece8');
+    ctx.font='10px -apple-system,sans-serif'; ctx.fillStyle=ink;
+    ctx.textAlign='right'; ctx.textBaseline='middle';
+    const gridN=4;
+    for(let i=0;i<=gridN;i++){
+      const y=pad.t+ch*i/gridN;
+      ctx.strokeStyle=grid; ctx.globalAlpha=i===0?0.9:0.5; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+cw,y); ctx.stroke();
+      ctx.globalAlpha=1;
+      ctx.fillText(String(Math.round(allMax*(1-i/gridN))), pad.l-6, y);
+    }
+    const step = labels.length>1 ? cw/(labels.length-1) : cw;
+    series.forEach(se=>{
+      const pts = se.data.map((v,i)=>({x:pad.l+step*i, y:pad.t+ch-(v/allMax)*ch}));
+      if(se.data.reduce((a,b)=>a+b,0) === 0) return;
+      const grad=ctx.createLinearGradient(0,pad.t,0,pad.t+ch);
+      grad.addColorStop(0, hexA(se.color,.34));
+      grad.addColorStop(1, hexA(se.color,.03));
+      ctx.beginPath(); ctx.moveTo(pts[0].x, pad.t+ch);
+      pts.forEach(p=>ctx.lineTo(p.x,p.y));
+      ctx.lineTo(pts[pts.length-1].x, pad.t+ch); ctx.closePath();
+      ctx.fillStyle=grad; ctx.fill();
+      ctx.beginPath(); pts.forEach((p,i)=> i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
+      ctx.strokeStyle=se.color; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.stroke();
+      pts.forEach(p=>{
+        ctx.beginPath(); ctx.arc(p.x,p.y,5,0,Math.PI*2); ctx.fillStyle=hexA(se.color,.16); ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x,p.y,2.6,0,Math.PI*2); ctx.fillStyle=se.color; ctx.fill();
+      });
+    });
+    ctx.fillStyle=ink; ctx.textAlign='center'; ctx.textBaseline='top';
+    const every=Math.ceil(labels.length/7);
+    labels.forEach((lb,i)=>{ if(i%every===0||i===labels.length-1) ctx.fillText(lb, pad.l+step*i, pad.t+ch+6); });
+    if(series.every(se=>se.data.reduce((a,b)=>a+b,0) === 0)){
+      ctx.fillStyle=ink; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.font='13px -apple-system,sans-serif';
+      ctx.fillText('近 14 天暂无活动数据', w/2, h/2);
+    }
+  }
+
+  function kb(n){ n=Number(n)||0; return n<1024 ? n+' B' : n<1048576 ? (n/1024).toFixed(1)+' KB' : (n/1048576).toFixed(2)+' MB'; }
+  function renderBackups(b){
+    if(!b || !b.ok){ $('backupState').textContent='备份状态读取失败'; return; }
+    $('backupMeta').textContent = '每 '+b.intervalH+' 小时一次 ｜ 保留 '+b.keep+' 份';
+    const latest = b.latest;
+    $('backupState').innerHTML = latest
+      ? ('最近备份 <b>'+fmt(latest.mtime)+'</b>（'+kb(latest.size)+'）｜共 '+b.count+' 份，占用 '+kb(b.totalSize))
+      : '<b style="color:#c0392b">尚无备份</b>（服务启动 30 秒后自动生成首份）';
+    const items = b.items || [];
+    $('backupRows').innerHTML = items.length
+      ? items.map(f=>'<tr><td><input type="checkbox" class="bksel" value="'+esc(f.name)+'"></td>'+
+          '<td><code>'+esc(f.name)+'</code></td><td>'+kb(f.size)+'</td><td>'+fmt(f.mtime)+'</td>'+
+          '<td><button class="mini danger" data-del="'+esc(f.name)+'">删除</button></td></tr>').join('')
+      : '<tr><td colspan="5" class="muted">暂无备份文件</td></tr>';
+    // 全选 / 单个勾选 → 同步批量删除按钮可用态
+    syncBackupSel();
+  }
+  function syncBackupSel(){
+    const sel = Array.from(document.querySelectorAll('.bksel')).filter(c=>c.checked).map(c=>c.value);
+    $('backupBatchDel').disabled = sel.length === 0;
+    $('backupBatchDel').textContent = sel.length ? ('批量删除选中 ('+sel.length+')') : '批量删除选中';
+  }
+  $('backupNow').addEventListener('click', async ()=>{
+    const btn=$('backupNow'); btn.disabled=true; const old=btn.textContent; btn.textContent='备份中…';
+    try{
+      const r = await fetch('/api/admin/backup',{method:'POST',headers:H()});
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok || !j.ok){ flash('备份失败：'+(j.error||r.status), true); }
+      else { flash('备份完成：'+j.file+'（'+kb(j.size)+'）'); }
+      const b = await fetch('/api/admin/backups',{headers:H()}).then(x=>x.json());
+      renderBackups(b);
+    }catch(e){ flash('备份失败：'+(e&&e.message||e), true); }
+    finally{ btn.disabled=false; btn.textContent=old; }
+  });
+
+  // 删除单个备份
+  $('backupRows').addEventListener('click', async (e)=>{
+    const btn = e.target.closest('[data-del]');
+    if(!btn) return;
+    const name = btn.getAttribute('data-del');
+    if(!confirm('确定删除备份 '+name+' ？删除后无法恢复，仅影响回滚能力，不影响线上数据。')) return;
+    btn.disabled = true; btn.textContent = '删除中…';
+    try{
+      const r = await fetch('/api/admin/backup?name='+encodeURIComponent(name),{method:'DELETE',headers:H()});
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok || !j.ok){ flash('删除失败：'+(j.error||r.status), true); }
+      else { flash('已删除 '+name); }
+      const b = await fetch('/api/admin/backups',{headers:H()}).then(x=>x.json());
+      renderBackups(b);
+    }catch(err){ flash('删除失败：'+(err&&err.message||err), true); }
+  });
+
+  // 勾选状态变化 → 同步批量按钮
+  $('backupRows').addEventListener('change', (e)=>{
+    if(e.target.classList.contains('bksel')) syncBackupSel();
+  });
+  // 全选
+  $('backupSelAll').addEventListener('change', (e)=>{
+    document.querySelectorAll('.bksel').forEach(c=>c.checked = e.target.checked);
+    syncBackupSel();
+  });
+  // 批量删除选中
+  $('backupBatchDel').addEventListener('click', async ()=>{
+    const names = Array.from(document.querySelectorAll('.bksel')).filter(c=>c.checked).map(c=>c.value);
+    if(!names.length) return;
+    if(!confirm('确定批量删除选中的 '+names.length+' 个备份？此操作不可恢复，仅影响回滚能力。')) return;
+    const btn=$('backupBatchDel'); btn.disabled=true; const old=btn.textContent; btn.textContent='删除中…';
+    try{
+      const r = await fetch('/api/admin/backups/delete',{method:'POST',headers:H(),body:JSON.stringify({names})});
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok || !j.ok){ flash('批量删除失败：'+(j.error||r.status), true); }
+      else { flash('已删除 '+j.removed.length+' 个，失败 '+(j.failed&&j.failed.length||0)+' 个', false); }
+      const b = await fetch('/api/admin/backups',{headers:H()}).then(x=>x.json());
+      renderBackups(b);
+      $('backupSelAll').checked = false;
+    }catch(err){ flash('批量删除失败：'+(err&&err.message||err), true); }
+    finally{ btn.textContent = old; syncBackupSel(); }
+  });
+
+  // 主动清理：只保留最新 keep 份
+  $('backupCleanup').addEventListener('click', async ()=>{
+    if(!confirm('将只保留最新 '+($('backupMeta').textContent.match(/保留\s*(\d+)/)||[,''])[1]+' 份备份，其余全部删除。确定？')) return;
+    const btn=$('backupCleanup'); btn.disabled=true; const old=btn.textContent; btn.textContent='清理中…';
+    try{
+      const r = await fetch('/api/admin/backups/cleanup',{method:'POST',headers:H()});
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok || !j.ok){ flash('清理失败', true); }
+      else { flash('已清理 '+((j.removed&&j.removed.length)||0)+' 份旧备份'); }
+      const b = await fetch('/api/admin/backups',{headers:H()}).then(x=>x.json());
+      renderBackups(b);
+    }catch(e){ flash('清理失败：'+(e&&e.message||e), true); }
+    finally{ btn.disabled=false; btn.textContent=old; }
+  });
+
+  function renderAnon(a){
+    $('anonUsed').textContent = a.imageUsed + ' / ' + a.limit + ' 次';
+    $('anonAt').textContent = a.lastImageAt ? ('最近一次 '+fmt(a.lastImageAt)) : '尚无消耗';
+  }
+
+  function renderTrial(t){
+    const engLimit = t.engineLimit, imgLimit = t.imageLimit;
+    $('trialDay').textContent = t.day + ' ｜ 引擎 ' + engLimit + ' / IP·日，出图 ' + imgLimit + ' 张 / IP·日';
+    if(!t.rows || !t.rows.length){ $('trialRows').innerHTML = '<tr><td colspan="5" class="muted">今日尚无游客试用</td></tr>'; return; }
+    $('trialRows').innerHTML = t.rows.map(r=>{
+      const pct = Math.min(100, Math.round(r.engine / engLimit * 100));
+      const done = r.engine >= engLimit;
+      const imgDone = (r.image|0) >= imgLimit;
+      return '<tr><td><code>'+esc(r.ip)+'</code></td>'+
+        '<td>'+r.engine+' / '+engLimit+
+          '<div style="height:4px;background:#eee;border-radius:2px;margin-top:3px"><div style="height:4px;border-radius:2px;width:'+pct+'%;background:'+(done?'#c0392b':'#1f8a70')+'"></div></div>'+
+          (done?'<span class="muted" style="color:#c0392b">引擎已用尽</span>':'')+'</td>'+
+        '<td>'+r.scene+'</td>'+
+        '<td>'+(r.image|0)+' / '+imgLimit+(imgDone?' <span class="muted" style="color:#c0392b">出图已用尽</span>':'')+'</td>'+
+        '<td class="muted">'+(r.updated_at?fmt(r.updated_at):'—')+'</td></tr>';
+    }).join('');
+  }
+
+  function renderUsers(list){
+    $('userCount').textContent = '共 ' + list.length + ' 个账户';
+    if(!list.length){ $('userRows').innerHTML = '<tr><td colspan="6" class="muted">暂无注册用户</td></tr>'; return; }
+    $('userRows').innerHTML = list.map(u=>{
+      const tags = (u.is_admin?'<span class="tag adm">管理员</span>':'') +
+                   (u.is_self?'<span class="tag you">你</span>':'') +
+                   (u.is_protected?'<span class="tag lock">.env 锁定</span>':'');
+      const pct = u.is_admin ? 0 : Math.min(100, u.imageUsed / 200 * 100);
+      const usage = u.is_admin
+        ? '<span class="muted">无限</span>'
+        : u.imageUsed + ' 次<div class="bar"><i style="width:'+pct+'%"></i></div>';
+      // 受保护/自身账户禁用降级与删除，避免把系统锁死
+      const noDemote = u.is_self || u.is_protected;
+      return '<tr>'+
+        '<td><span class="email">'+esc(u.email)+'</span>'+tags+'<div class="mono">'+esc(u.id)+'</div></td>'+
+        '<td>'+fmt(u.created_at)+'</td>'+
+        '<td>'+usage+(u.lastImageAt?'<div class="mono">'+fmt(u.lastImageAt)+'</div>':'')+'</td>'+
+        '<td>'+((u.assessmentCount||u.hasProfile)
+            ? '<b>'+(u.assessmentCount||0)+'</b> 条<button class="mini" data-act="detail" data-id="'+u.id+'" style="margin-left:6px">查看</button>'
+              +(u.lastAssessmentAt?'<div class="mono">'+fmt(u.lastAssessmentAt)+'</div>':'')
+            : '<span class="muted">无</span>')+'</td>'+
+        '<td>'+(u.liveSessions>0?('<b style="color:#1f8a70">'+u.liveSessions+'</b>'):'<span class="muted">0</span>')+'</td>'+
+        '<td>'+
+          (u.is_admin
+            ? '<button class="mini" data-act="revoke_admin" data-id="'+u.id+'"'+(noDemote?' disabled title="不可撤销自己或 .env 指定的管理员"':'')+'>撤销管理员</button>'
+            : '<button class="mini" data-act="grant_admin" data-id="'+u.id+'">设为管理员</button>')+
+          '<button class="mini" data-act="reset_usage" data-id="'+u.id+'">清零用量</button>'+
+          '<button class="mini" data-act="revoke_sessions" data-id="'+u.id+'"'+(u.liveSessions?'':' disabled')+'>强制下线</button>'+
+          '<button class="mini danger" data-act="delete" data-id="'+u.id+'"'+(noDemote?' disabled title="不可删除自己或 .env 指定的管理员"':'')+'>删除</button>'+
+        '</td></tr>';
+    }).join('');
+  }
+
+  // ---------- 操作 ----------
+  const CONFIRM = {
+    delete: '确定删除该账户？其档案、用量、登录态将一并清除，且不可恢复。',
+    revoke_admin: '确定撤销该账户的管理员权限？',
+    reset_usage: '确定将该账户的出图用量清零？',
+    revoke_sessions: '确定强制该账户下线？其所有设备需重新登录。'
+  };
+
+  document.addEventListener('click', async e=>{
+    const btn = e.target.closest('button[data-act]');
+    if(!btn || btn.disabled) return;
+    const act = btn.dataset.act, id = btn.dataset.id;
+    if(act === 'detail'){ return showDetail(id); }
+    if(CONFIRM[act] && !confirm(CONFIRM[act])) return;
+    btn.disabled = true;
+    try{
+      const r = await fetch('/api/admin/users',{method:'PATCH',headers:H(),body:JSON.stringify({id, action:act})});
+      const j = await r.json();
+      if(!r.ok){ flash(j.error||'操作失败', true); btn.disabled=false; return; }
+      flash(j.message||'操作成功', false);
+      await loadAll();
+    }catch(err){ flash('请求失败：'+(err&&err.message||err), true); btn.disabled=false; }
+  });
+
+  $('anonReset').addEventListener('click', async ()=>{
+    if(!confirm('确定将匿名体验池的出图用量清零？')) return;
+    try{
+      const r = await fetch('/api/admin/anon/reset',{method:'POST',headers:H()});
+      const j = await r.json();
+      flash(r.ok ? (j.message||'已清零') : (j.error||'失败'), !r.ok);
+      await loadAll();
+    }catch(e){ flash('请求失败：'+(e&&e.message||e), true); }
+  });
+
+  async function resetTrial(scope, tip){
+    if(!confirm(tip)) return;
+    try{
+      const r = await fetch('/api/admin/trial/reset',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},H()),body:JSON.stringify({scope})});
+      const j = await r.json();
+      flash(r.ok ? (j.message||'已清空') : (j.error||'失败'), !r.ok);
+      await loadAll();
+    }catch(e){ flash('请求失败：'+(e&&e.message||e), true); }
+  }
+  $('trialResetToday').addEventListener('click', ()=>resetTrial('today','清空今日全部游客试用计数？所有 IP 的额度将立即恢复。'));
+  $('trialResetAll').addEventListener('click', ()=>resetTrial('all','清空全部历史试用记录？'));
+
+  async function showDetail(id){
+    const d = $('detail');
+    d.style.display='block';
+    d.innerHTML = '<span class="muted">加载中…</span>';
+    try{
+      const j = await (await fetch('/api/admin/user?id='+encodeURIComponent(id), {headers:H()})).json();
+      const s = j.profileSummary;
+      let html = '<div class="row"><b>'+esc(j.user.email)+'</b> <span class="mono">'+esc(j.user.id)+'</span></div>';
+      html += '<div class="row">出图 '+j.imageUsed+' 次'+(j.lastImageAt?('，最近 '+fmt(j.lastImageAt)):'')+'</div>';
+      if(!s){ html += '<div class="row muted">该用户尚未保存测评档案。</div>'; }
+      else{
+        html += '<div class="row"><b>最近一次</b>｜'+fmt(s.exportedAt)+'｜作答 '+s.answerCount+' 题</div>';
+        if(s.enabled){
+          const on = Object.keys(s.enabled).filter(k=>s.enabled[k]);
+          html += '<div class="row">启用框架：'+esc(on.join('、')||'无')+'</div>';
+        }
+        if(s.moodWords) html += '<div class="row">气质关键词：'+esc(s.moodWords.join('、'))+'</div>';
+        if(s.explanation) html += '<div class="row">解读摘要：<pre>'+esc(s.explanation)+'…</pre></div>';
+      }
+      // 测评时间线：看得到用户的审美画像随时间怎么变
+      const hs = j.history || [];
+      if(hs.length){
+        html += '<div class="row" style="margin-top:10px"><b>测评时间线</b>（'+hs.length+' 条，新→旧）</div>';
+        html += '<div style="max-height:220px;overflow:auto;border:1px solid #eee;border-radius:8px;padding:6px 8px">';
+        html += hs.map(h=>'<div style="padding:5px 0;border-bottom:1px dashed #eee">'
+          + '<b>'+esc(h.title)+'</b> <span class="mono">'+fmt(h.created_at)+'</span>'
+          + '<div class="muted">'+h.answerCount+' 题｜'+esc((h.frameworks||[]).join('、')||'—')+(h.mood?('｜'+esc(h.mood)):'')+'</div>'
+          + '</div>').join('');
+        html += '</div>';
+      } else {
+        html += '<div class="row muted">暂无测评历史记录（该用户可能是旧版覆盖式档案）。</div>';
+      }
+      html += '<div style="margin-top:8px"><button class="mini" onclick="document.getElementById(\'detail\').style.display=\'none\'">收起</button></div>';
+      d.innerHTML = html;
+      d.scrollIntoView({behavior:'smooth', block:'nearest'});
+    }catch(e){ d.innerHTML = '<span style="color:#c0392b">加载失败：'+esc(e&&e.message||e)+'</span>'; }
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>

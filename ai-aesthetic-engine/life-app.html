@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>生活应用 · AI 审美系统</title>
+<style>
+  :root{
+    --bg:#f6f5f2; --card:#ffffff; --ink:#2b2b2b; --mut:#88807a;
+    --line:#e6e2dc; --acc:#8a6df0; --acc2:#f0a6c0; --pos:#c0392b; --neg:#1f8a70;
+  }
+  [data-theme="dark"]{
+    color-scheme:dark;
+    --bg:#15141a; --card:#211f29; --ink:#ece9f2; --mut:#a8a0b8;
+    --line:#322f3c; --acc:#9a86ff; --acc2:#f0a6c0; --pos:#e06a5a; --neg:#4cc9a0;
+  }
+  [data-theme="dark"] body{background:var(--bg);color:var(--ink)}
+  [data-theme="dark"] .mini{background:#2a2540;color:#cdbcff;border-color:#3a2f5c}
+  [data-theme="dark"] .today{background:#2a2540;border-color:#3a2f5c}
+  [data-theme="dark"] .empty{background:#3a2f1a;border-color:#5a4520;color:#f0c674}
+  [data-theme="dark"] .tab.active{background:var(--acc);color:#fff}
+  [data-theme="dark"] select{background:var(--card);color:var(--ink)}
+  [data-theme="dark"] .back:hover,[data-theme="dark"] .mini:hover{filter:brightness(1.2)}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.65}
+  .wrap{max-width:760px;margin:0 auto;padding:22px 18px 80px}
+  .topbar{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .back{font-size:13px;color:var(--acc);text-decoration:none;border:1px solid var(--line);
+    padding:5px 12px;border-radius:8px;background:var(--card)}
+  .back:hover{filter:brightness(1.03)}
+  h1{font-size:20px;margin:0}
+  .sub{color:var(--mut);font-size:13px;margin:2px 0 16px}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .tab{font-size:13px;padding:8px 14px;border-radius:10px;cursor:pointer;border:1px solid var(--line);
+    background:var(--card);color:var(--mut)}
+  .tab.active{background:var(--acc);color:#fff;border-color:var(--acc)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px}
+  .card h3{margin:0 0 8px;font-size:15px}
+  .row{margin:6px 0}
+  .row b{color:var(--ink)}
+  .muted{color:var(--mut);font-size:12px}
+  .note{color:var(--mut);font-size:12px;margin-top:12px}
+  .room{border-left:2px solid var(--line);padding-left:10px;margin:8px 0 10px}
+  .room b{display:block;margin-bottom:2px}
+  ul{margin:4px 0 0;padding-left:18px}
+  li{margin:2px 0}
+  .gen-img{max-width:100%;border-radius:12px;margin-top:10px;border:1px solid var(--line)}
+  .mini{background:#efeafc;color:#5a3fc0;border:1px solid #ddd3f7;border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer}
+  .mini:hover{filter:brightness(1.03)}
+  .mini:disabled{opacity:.5;cursor:default}
+  .quote{font-size:16px;line-height:1.8;padding:10px 0;border-bottom:1px dashed var(--line)}
+  .today{background:#fbf7ff;border:1px solid #e7defb;border-radius:10px;padding:12px;margin:10px 0;font-size:17px}
+  .empty{background:#fff7e6;border:1px solid #ffe0a3;color:#8a5a00;padding:14px;border-radius:10px;font-size:13px}
+  select{font-size:13px;padding:4px 6px;border:1px solid var(--line);border-radius:8px}
+  /* ===== 移动端适配（窄屏）===== */
+  @media (max-width:640px){
+    .wrap{padding:16px 12px 64px}
+    h1{font-size:18px}
+    .sub{font-size:12px}
+    .card{padding:14px}
+    .card h3{font-size:14px}
+    .today{font-size:15px}
+    .quote{font-size:15px}
+    .tabs .tab{padding:7px 10px;font-size:12px}
+    .mini{font-size:12px;padding:6px 10px}
+    .back{padding:5px 10px;font-size:12px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a class="back" href="index.html">← 返回方案</a>
+    <h1>生活应用</h1>
+    <button class="back" id="themeToggle" style="margin-left:auto">🌙 切暗色</button>
+  </div>
+  <div class="sub">把同一份审美画像翻译成可落地的生活方案（M3 场景引擎 · 本地确定性）</div>
+
+  <div class="tabs" id="tabs">
+    <div class="tab" data-scene="house">🏠 房屋布局</div>
+    <div class="tab" data-scene="outfit">👗 穿搭衣橱</div>
+    <div class="tab" data-scene="quotes">💬 思考语录</div>
+  </div>
+
+  <div id="app"></div>
+</div>
+
+<script>
+(function(){
+  const SCENES = {
+    house:  { title:'房屋布局', imgLabel:'生成房间实拍图', imgName:'house' },
+    outfit: { title:'穿搭衣橱', imgLabel:'生成穿搭人像图', imgName:'outfit' },
+    quotes: { title:'思考语录', imgLabel:null,            imgName:null }
+  };
+  let pkg = null, currentImgPrompt = '';
+
+  function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+  function $(id){ return document.getElementById(id); }
+  function getToken(){ try { return localStorage.getItem('aae_token') || null; } catch(e){ return null; } }
+  function authHeaders(){ const t=getToken(); return t ? { 'Authorization': 'Bearer ' + t } : {}; }
+
+  function getScene(){
+    const p = new URLSearchParams(location.search).get('scene');
+    return SCENES[p] ? p : 'house';
+  }
+
+  function switchScene(s){
+    if(!SCENES[s]) s='house';
+    const u = new URL(location.href); u.searchParams.set('scene', s);
+    history.replaceState(null, '', u.toString());
+    render(s);
+  }
+
+  // 服务端场景引擎：把 pkg 发给 /api/scenarios，由后端（持有映射 IP）计算，前端不加载 scenarios.js
+  async function fetchScenario(scene){
+    const r = await fetch('/api/scenarios', { method:'POST', headers: Object.assign({'Content-Type':'application/json'}, authHeaders()), body: JSON.stringify({ pkg, scene }) });
+    // 游客可直接使用（按 IP 每日限额）；429 = 试用用尽，401 = token 失效
+    if(r.status===429 || r.status===401){
+      const j = await r.json().catch(()=>({}));
+      return { __needLogin:true, error: j.error || '请先登录' };
+    }
+    if(!r.ok){ const j=await r.json().catch(()=>({})); throw new Error(j.error||('场景引擎错误 '+r.status)); }
+    return await r.json();
+  }
+
+  async function render(s){
+    Array.prototype.forEach.call(document.querySelectorAll('#tabs .tab'), t=>{
+      t.classList.toggle('active', t.getAttribute('data-scene')===s);
+    });
+    const app = $('app');
+    if(!pkg){ app.innerHTML = '<div class="empty">尚未生成方案。请先在「AI 审美系统」主页完成作答并点击「生成整体方案」，本页才能读取你的审美画像。<br><br><a class="back" href="index.html">← 去主页生成</a></div>'; return; }
+
+    let data;
+    try{
+      data = await fetchScenario(s);
+    }catch(e){ app.innerHTML = '<div class="empty">场景生成失败：'+(e&&e.message||e)+'</div>'; return; }
+    if(data && data.__needLogin){
+      app.innerHTML = '<div class="empty">'+escapeHtml(data.error)+'<br><br><a class="back" href="index.html">← 去主页登录</a></div>';
+      return;
+    }
+
+    currentImgPrompt = data.imagePrompt || '';
+    let html = '';
+
+    if(s==='house'){
+      html += '<div class="card"><h3>🏠 房屋布局</h3>';
+      html += '<div class="row"><b>总纲：</b>'+escapeHtml(data.summary)+'</div>';
+      html += '<div class="row"><b>配色：</b>'+escapeHtml(data.palette.color)+' ｜ <b>比例：</b>'+escapeHtml(data.palette.ratio)+'</div>';
+      html += '<div class="row"><b>材质：</b>'+escapeHtml(data.materials)+'</div>';
+      html += '<div class="row"><b>灯光：</b>'+escapeHtml(data.lighting)+'</div>';
+      html += '<div class="row"><b>家具廓形：</b>'+escapeHtml(data.furniture)+'</div>';
+      html += '<div class="row"><b>空间气质：</b>'+escapeHtml(data.atmosphere)+(data.mood?' ｜ 情绪：'+escapeHtml(data.mood):'')+'</div>';
+      html += '<h3 style="margin-top:14px">分房间落地</h3>';
+      data.rooms.forEach(r=>{
+        html += '<div class="room"><b>'+escapeHtml(r.name)+'</b><ul>';
+        r.tips.forEach(t=>{ html += '<li>'+escapeHtml(t)+'</li>'; });
+        html += '</ul></div>';
+      });
+      html += '<div class="row"><b>避雷：</b>'+escapeHtml(data.avoid)+'</div>';
+      html += '</div>';
+      html += imgBlock(SCENES[s]);
+    }
+    else if(s==='outfit'){
+      html += '<div class="card"><h3>👗 穿搭衣橱</h3>';
+      html += '<div class="row"><b>总纲：</b>'+escapeHtml(data.summary)+'</div>';
+      html += '<div class="row"><b>配色：</b>'+escapeHtml(data.palette)+'</div>';
+      html += '<div class="row"><b>廓形：</b>'+escapeHtml(data.silhouette)+'</div>';
+      html += '<div class="row"><b>面料：</b>'+escapeHtml(data.fabric)+'</div>';
+      html += '<div class="row"><b>图案 / 元素：</b>'+escapeHtml(data.pattern)+'</div>';
+      html += '<div class="row"><b>妆发方向：</b>'+escapeHtml(data.hairMakeup)+'</div>';
+      html += '<h3 style="margin-top:14px">胶囊衣橱</h3><ul>';
+      data.pieces.forEach(p=>{ html += '<li>'+escapeHtml(p)+'</li>'; });
+      html += '</ul>';
+      html += '<div class="row"><b>避雷：</b>'+escapeHtml(data.avoid)+'</div>';
+      html += '</div>';
+      html += imgBlock(SCENES[s]);
+    }
+    else { // quotes
+      html += '<div class="card"><h3>💬 思考语录</h3>';
+      html += '<div class="row muted">气质母题：'+escapeHtml(data.motif)+(data.mood?' ｜ 情绪：'+escapeHtml(data.mood):'')+'</div>';
+      html += '<div class="today">今日语录 ｜ '+escapeHtml(data.today)+'</div>';
+      data.lines.forEach(l=>{ html += '<div class="quote">'+escapeHtml(l)+'</div>'; });
+      html += '<h3 style="margin-top:14px">审美宣言</h3>';
+      html += '<div class="row" style="font-size:15px">'+escapeHtml(data.manifesto)+'</div>';
+      html += '<button class="mini" id="copyQuotes" style="margin-top:10px">复制全部语录</button>';
+      html += '</div>';
+    }
+
+    app.innerHTML = html;
+
+    if(s==='quotes'){
+      $('copyQuotes').addEventListener('click', ()=>{
+        const txt = [data.today].concat(data.lines).concat(['', data.manifesto]).join('\n');
+        if(navigator.clipboard) navigator.clipboard.writeText(txt).then(()=>alert('已复制语录'),()=>{});
+        else alert('复制失败：请手动选择');
+      });
+    }
+    if(SCENES[s].imgLabel){
+      const btn = $('reqSceneImg');
+      btn.addEventListener('click', ()=>reqImg(btn, SCENES[s].imgName));
+      $('dlSceneImg').addEventListener('click', ()=>{
+        const im = $('sceneImg'); if(!im.src) return;
+        const a=document.createElement('a'); a.href=im.src; a.download=SCENES[s].imgName+'_'+Date.now()+'.png';
+        document.body.appendChild(a); a.click(); a.remove();
+      });
+    }
+  }
+
+  function imgBlock(meta){
+    return '<div class="card"><h3>'+escapeHtml(meta.imgLabel)+'</h3>'+
+      '<div style="margin-bottom:8px">出图通道：<select id="sceneProvider"><option value="">默认（后端 IMG_PROVIDER：内置混元生图）</option>'+
+      '<option value="buddycloudimg">内置技能（腾讯混元生图）</option>'+
+      '<option value="openai">OpenAI</option><option value="jimeng">即梦 AI</option></select></div>'+
+      '<button class="mini" id="reqSceneImg">'+escapeHtml(meta.imgLabel)+'</button>'+
+      '<button class="mini" id="dlSceneImg" style="display:none;margin-left:8px">下载图片</button>'+
+      '<div class="note" id="sceneImgMsg"></div>'+
+      '<img id="sceneImg" class="gen-img" style="display:none"></div>';
+  }
+
+  async function reqImg(btn, name){
+    if(!currentImgPrompt){ alert('暂无可用的出图提示词'); return; }
+    const imgEl = $('sceneImg'), msg = $('sceneImgMsg'), dl = $('dlSceneImg');
+    imgEl.style.display='none'; imgEl.src=''; dl.style.display='none'; msg.textContent='生成中（约 10–60 秒）…';
+    btn.disabled=true; btn.style.opacity='0.5'; btn.textContent='生成中…';
+    try{
+      const provider = $('sceneProvider').value;
+      const body = { prompt: currentImgPrompt, opts:{} };
+      if(provider) body.opts.provider = provider;
+      const r = await fetch('/api/generate-image',{method:'POST',headers:Object.assign({'Content-Type':'application/json'}, authHeaders()),body:JSON.stringify(body)});
+      const j = await r.json();
+      if(j.image){ imgEl.src=j.image; imgEl.style.display='block'; dl.style.display='inline-block'; msg.textContent=''; }
+      else msg.textContent = '未出图：' + (j.reason||'未知原因') + '（可复制上方方案到文生图工具）';
+    }catch(e){ msg.textContent='请求失败：'+(e&&e.message||e)+'（后端未运行或未配置密钥）'; }
+    finally{ btn.disabled=false; btn.style.opacity='1'; btn.textContent='重新生成'; }
+  }
+
+  // 初始化
+  try { pkg = JSON.parse(sessionStorage.getItem('aae_pkg') || 'null'); } catch(e){ pkg = null; }
+  Array.prototype.forEach.call(document.querySelectorAll('#tabs .tab'), t=>{
+    t.addEventListener('click', ()=>switchScene(t.getAttribute('data-scene')));
+  });
+  render(getScene());
+})();
+</script>
+<script>
+(function(){
+  var t=document.getElementById('themeToggle');
+  if(!t) return;
+  function apply(theme){
+    if(theme==='dark'){document.documentElement.setAttribute('data-theme','dark');t.textContent='☀️ 切亮色';}
+    else{document.documentElement.removeAttribute('data-theme');t.textContent='🌙 切暗色';}
+  }
+  var saved=localStorage.getItem('aae-theme');
+  if(!saved){saved=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';}
+  apply(saved);
+  t.addEventListener('click',function(){
+    var cur=document.documentElement.getAttribute('data-theme')==='dark'?'dark':'light';
+    var next=cur==='dark'?'light':'dark';
+    localStorage.setItem('aae-theme',next);apply(next);
+  });
+})();
+</script>
+</body>
+</html>

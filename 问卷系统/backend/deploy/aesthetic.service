@@ -1,0 +1,38 @@
+# AI 审美系统 · 后端服务（Node + node:sqlite）
+# 安装：
+#   sudo cp aesthetic.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now aesthetic
+# 查看：
+#   sudo systemctl status aesthetic
+#   journalctl -u aesthetic -n 50 --no-pager
+#
+# 说明：
+#   - 用 watchdog.js 拉起 server.js，自身带崩溃自重启；systemd 仅兜底极端情况。
+#   - 路径均按服务器实际部署目录填写（见下方 /opt/apps/aesthetic/...）。
+#   - 若你的服务器目录用了英文命名（推荐，避免中文路径编码坑），把下面的中文“问卷系统”改成对应英文名即可。
+
+[Unit]
+Description=AI 审美系统 · 神性测评后端
+After=network.target
+
+[Service]
+Type=simple
+# 运行用户：云上建议 www-data 或自建 deploy 用户；本地开发可用当前用户
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/apps/aesthetic/问卷系统/backend
+# 用系统 node（apt 安装的 Node 22，路径为 /usr/bin/node）
+ExecStart=/usr/bin/node /opt/apps/aesthetic/问卷系统/backend/watchdog.js
+# STATIC_DIR 指向项目根（含研究控制台 index.html 与 问卷系统/ 子目录）
+Environment=PORT=3000
+Environment=STATIC_DIR=/opt/apps/aesthetic
+Environment=NO_OPEN=1
+# watchdog 自身已做崩溃重启；systemd 这里只兜底
+Restart=on-failure
+RestartSec=3
+StandardOutput=append:/opt/apps/aesthetic/问卷系统/backend/logs/server.log
+StandardError=append:/opt/apps/aesthetic/问卷系统/backend/logs/server.log
+
+[Install]
+WantedBy=multi-user.target

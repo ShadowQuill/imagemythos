@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>神性测评 · 分享卡片</title>
+<style>
+  :root{
+    --bg:#f6f5f2; --card:#ffffff; --ink:#2b2b2b; --mut:#88807a;
+    --line:#e6e2dc; --acc:#8a6df0; --acc2:#f0a6c0;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(160deg,#f3effb 0%,#f6f5f2 40%,#fdf0f5 100%);
+    color:var(--ink);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6}
+  .wrap{max-width:680px;margin:0 auto;padding:28px 18px 64px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;
+    padding:26px 22px;box-shadow:0 8px 30px rgba(138,109,240,.08)}
+  .brand{font-size:12px;color:var(--mut);letter-spacing:1px;margin-bottom:6px}
+  h1.title{font-size:24px;margin:0 0 14px;line-height:1.35}
+  .mood{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 22px}
+  .mood span{background:#fdeaf1;color:#c0508a;border-radius:999px;padding:5px 14px;font-size:14px}
+  .sec-t{font-size:13px;color:var(--mut);margin:22px 0 8px;letter-spacing:.5px}
+  .vec-row{display:grid;grid-template-columns:60px 1fr 60px;align-items:center;gap:8px;margin:8px 0;font-size:12px}
+  .vec-row .neg{color:#1f8a70;text-align:right}
+  .vec-row .pos{color:#c0392b}
+  .bar{position:relative;height:14px;background:#eee;border-radius:7px;overflow:hidden}
+  .bar .mid{position:absolute;left:50%;top:0;bottom:0;width:1px;background:#bbb}
+  .bar .fill{position:absolute;top:0;bottom:0;background:linear-gradient(90deg,#1f8a70,#c0392b)}
+  .pills{display:flex;flex-wrap:wrap;gap:8px}
+  .pill{background:#f0ecfb;color:#5a3fc0;border-radius:12px;padding:8px 12px;font-size:13px}
+  .pill b{color:#7a5fd0}
+  .exp{white-space:pre-wrap;background:#fbfaf8;border:1px solid var(--line);border-radius:12px;
+    padding:14px;font-size:14px;margin-top:8px}
+  .kv{background:#fbfaf8;border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:14px;margin-top:8px}
+  .kv .h{font-size:12px;color:var(--mut);margin-bottom:4px}
+  .img{max-width:100%;border-radius:14px;margin-top:12px;border:1px solid var(--line);display:block}
+  .hero{width:100%;display:block;margin:0;border-radius:18px;border:1px solid var(--line);box-shadow:0 10px 36px rgba(138,109,240,.12)}
+  .hero-fig{margin:6px 0 18px}
+  .media-cap{margin-top:8px;font-size:13px;font-weight:600;color:var(--acc);text-align:center}
+  .poster{margin:6px 0 22px}
+  .poster svg{width:100%;height:auto;display:block;border-radius:18px;box-shadow:0 10px 36px rgba(138,109,240,.12)}
+  /* 折叠面板：出图/视频/3D 更醒目，明确提示用户可点击展开 */
+  .expand{border:1.5px solid var(--acc);border-radius:14px;margin:14px 0;overflow:hidden;
+    background:color-mix(in srgb, var(--acc) 10%, var(--card));
+    box-shadow:0 6px 20px rgba(138,109,240,.14)}
+  .expand-head{width:100%;text-align:left;background:transparent;border:none;cursor:pointer;padding:15px 16px;
+    font-size:16px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:9px;font-family:inherit;transition:background .15s}
+  .expand-head:hover{background:color-mix(in srgb, var(--acc) 14%, transparent)}
+  .expand .expand-hint{margin-left:auto;font-size:12.5px;font-weight:600;color:var(--acc)}
+  .expand .chev{margin-left:8px;width:26px;height:26px;flex:none;display:flex;align-items:center;justify-content:center;
+    font-size:16px;border-radius:50%;background:var(--acc);color:#fff;transition:transform .2s}
+  .expand.open .chev{transform:rotate(45deg)}
+  .expand-body{display:none;padding:0 16px 16px}
+  .expand.open .expand-body{display:block}
+  .expand-body video{max-width:100%;border-radius:10px;display:block;margin-top:6px}
+  .expand-body .model3d{margin-top:6px}
+  .expiry{font-size:12px;color:var(--mut);margin:8px 0 16px;padding:6px 12px;border-radius:999px;
+    background:#f3f0fb;display:inline-block;border:1px solid #e6e0f7}
+  .expiry.expired{background:#fff1f0;color:#a8071a;border-color:#ffccc7}
+  /* 3D 雕塑查看器：渐变柔光底，与站点主色呼应；model-viewer 按需懒加载 */
+  .model3d{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--line);
+    height:360px;margin-top:8px;
+    background:radial-gradient(120% 120% at 50% 0%,#f0ecfb 0%,#f6f5f2 58%,#fdf0f5 100%)}
+  .model3d model-viewer{width:100%;height:100%;--poster-color:transparent}
+  .model3d .loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    color:var(--mut);font-size:13px;pointer-events:none}
+  @media (max-width:640px){ .model3d{height:300px} }
+  .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:26px}
+  button{font-size:15px;border:none;border-radius:12px;padding:12px 20px;cursor:pointer}
+  .primary{background:var(--acc);color:#fff}
+  .ghost{background:#efeafc;color:#5a3fc0}
+  .actions a{display:inline-block;text-decoration:none;font-size:15px;border:none;border-radius:12px;padding:12px 20px;cursor:pointer;text-align:center;box-sizing:border-box}
+  .actions a.ghost{background:#efeafc;color:#5a3fc0}
+  .meta{margin-top:18px;font-size:12px;color:var(--mut);text-align:center}
+  .err{padding:40px 20px;text-align:center;color:#c0392b}
+  a{color:var(--acc);text-decoration:none}
+  /* ===== 移动端适配（窄屏）===== */
+  @media (max-width:640px){
+    .wrap{padding:18px 12px 48px}
+    .card{padding:18px 14px}
+    h1.title{font-size:20px}
+    .mood{margin:12px 0 18px;gap:7px}
+    .mood span{font-size:13px;padding:4px 11px}
+    .vec-row{grid-template-columns:48px 1fr 48px;font-size:11px;gap:6px}
+    .pill{font-size:12px;padding:7px 10px}
+    .exp,.kv{font-size:13px;padding:12px}
+    .actions{flex-direction:column}
+    .actions button,.actions a{width:100%}
+    .sec-t{margin:18px 0 6px}
+  }
+  /* ===== 暗色主题：随系统 aae-theme 同步（与神性测评体验页一致）===== */
+  [data-theme="dark"]{
+    --bg:#13111c; --card:#1c1a26; --ink:#e8e4f3; --mut:#9b94b3;
+    --line:#2c2838; --acc:#a98cff; --acc2:#ff9ec4;
+  }
+  [data-theme="dark"] body{background:linear-gradient(160deg,#16121f 0%,#13111c 40%,#1b1422 100%);color:var(--ink)}
+  [data-theme="dark"] .card{background:var(--card);border-color:var(--line);box-shadow:0 8px 30px rgba(0,0,0,.4)}
+  [data-theme="dark"] .mood span{background:#3a2330;color:#ff9ec4}
+  [data-theme="dark"] .bar{background:#2a2740}
+  [data-theme="dark"] .bar .mid{background:#4a4660}
+  [data-theme="dark"] .pill{background:#2a2540;color:#c3b6ff}
+  [data-theme="dark"] .pill b{color:#d2c4ff}
+  [data-theme="dark"] .exp{background:#1b1a22;border-color:var(--line)}
+  [data-theme="dark"] .kv{background:#1b1a22;border-color:var(--line)}
+  [data-theme="dark"] .img,.model3d,.hero{border-color:var(--line)}
+  [data-theme="dark"] .expiry{background:#2a2540;color:var(--mut);border-color:#3a3550}
+  [data-theme="dark"] .expiry.expired{background:#3a2330;color:#ff9ec4;border-color:#5a3a48}
+  [data-theme="dark"] .ghost,[data-theme="dark"] .actions a.ghost{background:#2a2540;color:#c3b6ff}
+  [data-theme="dark"] .model3d{background:radial-gradient(120% 120% at 50% 0%,#2a2540 0%,#1c1a26 58%,#241f33 100%)}
+  [data-theme="dark"] .poster svg,.model3d,[data-theme="dark"] .hero{box-shadow:0 10px 36px rgba(0,0,0,.45)}
+  /* 暗色切换按钮：固定在右上角，与站点主色呼应 */
+  .theme-toggle{position:fixed;top:16px;right:16px;z-index:50;width:42px;height:42px;border-radius:12px;
+    border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:18px;line-height:1;
+    cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center}
+  .theme-toggle:hover{filter:brightness(1.12)}
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="themeToggle" title="切换主题">🌙</button>
+<div class="wrap">
+  <div id="root"><div class="card"><div class="err">加载中…</div></div></div>
+  <div class="meta">由「AI 审美系统 · 神性测评体验」生成 · 这是一张对外公开的审美气质卡片</div>
+</div>
+<script src="data.js"></script>
+<script src="poster.js"></script>
+<script>
+  // ---- 主题：跟随系统 aae-theme（与神性测评体验页同源 localStorage），并支持本页切换 ----
+  (function(){
+    function applyTheme(theme){
+      if(theme === 'dark'){ document.documentElement.setAttribute('data-theme','dark'); }
+      else { document.documentElement.removeAttribute('data-theme'); }
+      const t = document.getElementById('themeToggle');
+      if(t) t.textContent = theme === 'dark' ? '☀️' : '🌙';
+    }
+    let saved = localStorage.getItem('aae-theme');
+    if(!saved){ saved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light'; }
+    applyTheme(saved);
+    const toggle = document.getElementById('themeToggle');
+    if(toggle){
+      toggle.addEventListener('click', function(){
+        const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+        const next = cur === 'dark' ? 'light' : 'dark';
+        localStorage.setItem('aae-theme', next);
+        applyTheme(next);
+        rerenderPoster();
+      });
+    }
+  })();
+
+  const DATA = window.AESTHETIC_DATA;
+  function resultLabel(fwId, key){
+    if(!key) return '—';
+    if(fwId==='astro'){
+      const m = key.match(/^(sun|moon|asc)_(.+)$/);
+      if(m){
+        const asp = {sun:'太阳',moon:'月亮',asc:'上升'}[m[1]];
+        const sg = DATA && DATA.bank && DATA.bank.signs[m[2]];
+        return asp + ' · ' + (sg ? sg.label : m[2]);
+      }
+    }
+    const fw = DATA && DATA.bank && DATA.bank.frameworks[fwId];
+    if(fw && fw.results && fw.results[key]) return fw.results[key].label;
+    return key;
+  }
+  function fwName(fwId){ return (DATA && DATA.bank && DATA.bank.frameworks[fwId] && DATA.bank.frameworks[fwId].name) || fwId; }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+  function render(s){
+    const d = s.data || {};
+    const vec = d.vector || {};
+    const results = d.results || {};
+    const pkg = d.package || {};
+    const mood = (pkg.profile && Array.isArray(pkg.profile.moodWords)) ? pkg.profile.moodWords : [];
+    const dims = (DATA && DATA.dims && DATA.dims.dimensions) || [];
+    const sel = Object.keys(results);
+
+    let vecHTML = '';
+    if(dims.length){
+      vecHTML = dims.map(dim=>{
+        const v = vec[dim.id] || 0;
+        const pct = (v+1)/2*100;
+        const left = v<0 ? pct+'%' : '50%';
+        const width = Math.abs(v)*50 + '%';
+        return '<div class="vec-row"><div class="neg">'+esc(dim.negLabel)+'</div>'
+          + '<div class="bar"><div class="mid"></div><div class="fill" style="left:'+left+';width:'+width+'"></div></div>'
+          + '<div class="pos">'+esc(dim.posLabel)+'</div></div>';
+      }).join('');
+    } else {
+      vecHTML = Object.keys(vec).map(k=>'<div class="vec-row"><div class="neg">'+esc(k)+'</div><div class="bar"><div class="mid"></div><div class="fill" style="left:50%;width:'+Math.abs(vec[k])*50+'%"></div></div><div class="pos"></div></div>').join('');
+    }
+
+    const pills = sel.map(fwId=>{
+      const r = results[fwId];
+      const pri = resultLabel(fwId, r && r.primary);
+      const sec = resultLabel(fwId, r && r.secondary);
+      return '<div class="pill"><b>'+esc(fwName(fwId))+'</b>　主 '+esc(pri)+' ｜ 次 '+esc(sec)+'</div>';
+    }).join('');
+
+    // 真实 AI 出图：分享时由服务端落盘，data.image 是 /share-images/xxx.png 这样的静态路径
+    const img = d.image || (pkg.imagePrompt && (pkg.imagePrompt.url || pkg.imagePrompt.image)) || pkg.imageUrl || null;
+    // 视频 / 3D 雕塑：分享时一并打包进 data（优先），兼容旧卡用顶层 model_path
+    const videoURL = d.video || s.video || null;
+    const modelURL = d.model3d || s.model_path || null;
+
+    const space = pkg.spaceStyle || {};
+    const pal = space.palette && Array.isArray(space.palette.swatches) ? space.palette.swatches.join(' / ') : '';
+    const prompt = pkg.imagePrompt && pkg.imagePrompt.text ? pkg.imagePrompt.text : '';
+
+    // 分享卡片配图：由向量确定性生成一张气质海报（纯前端、零出图成本）
+    let posterSVG = '';
+    // 同一份画像参数三种版式共用（竖版存图时复用），故留存到全局
+    const posterOpts = {
+      title: s.title || '我的神性测评',
+      mood: mood,
+      results: results,
+      vector: vec,
+      explanation: d.explanation || '',
+      theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'
+    };
+    window.__posterOpts = posterOpts;
+    try {
+      if (window.AestheticPoster) posterSVG = AestheticPoster.renderPosterSVG(posterOpts);
+    } catch (e) { posterSVG = ''; }
+
+    // 主视觉取舍：有真实 AI 出图就让它占据首屏（观感最强），气质海报退到下方作可下载的「名片」；
+    // 没出图时海报顶上来，保证每张分享卡都有像样的视觉，不会是一堵纯文字墙。
+    const posterBlock = posterSVG ? '<div class="poster" id="posterBox">'+posterSVG+'</div>' : '';
+    const heroBlock = img ? '<figure class="hero-fig"><img class="hero" id="heroImg" src="'+esc(img)+'" alt="AI 生成的气质影像"><figcaption class="media-cap">🖼️ 气质影像</figcaption></figure>' : '';
+    const topVisual = img ? heroBlock : posterBlock;
+    const belowVisual = (img && posterBlock) ? '<div class="sec-t">气质名片</div>' + posterBlock : '';
+
+    // 视频 / 3D 雕塑：默认折叠、点击展开（避免一次性加载过重的媒体，突出出图主视觉）
+    const videoHTML = videoURL
+      ? '<div class="expand" data-kind="video" data-src="'+esc(videoURL)+'">'
+        + '<button class="expand-head" type="button">🎬 神性视频<span class="expand-hint">点击展开</span><span class="chev">＋</span></button>'
+        + '<div class="expand-body"></div></div>'
+      : '';
+    const modelHTML = modelURL
+      ? '<div class="expand" data-kind="model3d" data-src="'+esc(modelURL)+'">'
+        + '<button class="expand-head" type="button">🗿 3D 神性雕塑 · 可拖拽旋转 / 滚轮缩放<span class="expand-hint">点击展开</span><span class="chev">＋</span></button>'
+        + '<div class="expand-body"></div></div>'
+      : '';
+
+    // 有效期提示：expires_at 为空表示永久有效（兼容旧分享卡）
+    let expiryHTML = '';
+    if(s.expires_at){
+      const ms = new Date(s.expires_at).getTime() - Date.now();
+      if(ms > 0){
+        const days = Math.floor(ms / 864e5);
+        const hrs = Math.floor((ms % 864e5) / 36e5);
+        const left = days >= 1 ? ('剩余 ' + days + ' 天') : ('剩余 ' + (hrs >= 1 ? hrs + ' 小时' : '不到 1 小时'));
+        expiryHTML = '<div class="expiry">有效期至 ' + s.expires_at.slice(0,10)
+          + '（' + left + '）<span title="分享卡默认 7 天有效">⏳</span></div>';
+      } else {
+        expiryHTML = '<div class="expiry expired">已于 ' + s.expires_at.slice(0,10) + ' 过期</div>';
+      }
+    } else {
+      expiryHTML = '<div class="expiry">永久有效分享卡</div>';
+    }
+
+    document.getElementById('root').innerHTML = ''
+      + '<div class="card">'
+      +   '<div class="brand">AI 审美系统 · 神性测评体验</div>'
+      +   topVisual
+      +   videoHTML
+      +   modelHTML
+      +   '<h1 class="title">'+esc(s.title||'我的神性测评')+'</h1>'
+      +   expiryHTML
+      +   (mood.length ? '<div class="mood">'+mood.map(m=>'<span>'+esc(m)+'</span>').join('')+'</div>' : '')
+      +   (sel.length ? '<div class="sec-t">气质框架</div><div class="pills">'+pills+'</div>' : '')
+      +   '<div class="sec-t">统一美学向量（8 轴）</div>' + vecHTML
+      +   (d.explanation ? '<div class="sec-t">为什么这样彰显气质</div><div class="exp">'+esc(d.explanation)+'</div>' : '')
+      +   belowVisual
+      +   (prompt ? '<div class="sec-t">影像文生图提示词</div><div class="kv">'+esc(prompt)+'</div>' : '')
+      +   (space.text ? '<div class="sec-t">空间 / 视觉风格</div><div class="kv">'+esc(space.text)+'</div>' : '')
+      +   (pal ? '<div class="sec-t">调色走向</div><div class="kv">'+esc(pal)+'</div>' : '')
+      +   '<div class="actions">'
+      +     '<button class="primary" onclick="copyLink()">复制卡片链接</button>'
+      +     (posterSVG ? '<button class="ghost" onclick="downloadPoster()">下载海报图</button>' : '')
+      +     (posterSVG ? '<button class="ghost" onclick="downloadStory()">存竖版海报（朋友圈）</button>' : '')
+      +     (img ? '<button class="ghost" onclick="downloadHero()">下载 AI 图</button>' : '')
+      +     '<a class="ghost" style="display:inline-block" href="index.html">我也要测 →</a>'
+      +   '</div>'
+      + '</div>';
+
+    // 折叠面板：默认折叠，首次展开时才填充内容（视频直接播放；3D 懒加载 model-viewer 组件）
+    document.querySelectorAll('#root .expand').forEach(function(box){
+      const head = box.querySelector('.expand-head');
+      const body = box.querySelector('.expand-body');
+      const kind = box.getAttribute('data-kind');
+      const src = box.getAttribute('data-src');
+      let filled = false;
+      head.addEventListener('click', function(){
+        box.classList.toggle('open');
+        const hint = head.querySelector('.expand-hint');
+        if(hint) hint.textContent = box.classList.contains('open') ? '收起' : '点击展开';
+        if(box.classList.contains('open') && !filled){
+          filled = true;
+          if(kind === 'video'){
+            const v = document.createElement('video');
+            v.src = src; v.controls = true; v.autoplay = true; v.loop = true;
+            v.muted = true; v.playsInline = true; v.style.display = 'block';
+            body.appendChild(v);
+          } else if(kind === 'model3d'){
+            body.innerHTML = '<div class="model3d"><model-viewer src="'+esc(src)+'" camera-controls auto-rotate '
+              + 'shadow-intensity="1" ar ar-modes="webxr scene-viewer quick-look" alt="气质 3D 雕塑" '
+              + 'loading="eager" min-camera-orbit="auto 10deg 20%" max-camera-orbit="auto 170deg 300%"></model-viewer><div class="loading">正在加载 3D 雕塑…</div></div>';
+            if(!customElements.get('model-viewer')){
+              const m = document.createElement('script');
+              m.type = 'module';
+              m.src = '/ai-aesthetic-engine/assets/model-viewer.min.js';
+              document.head.appendChild(m);
+            }
+            const mv = body.querySelector('model-viewer');
+            if(mv){
+              const hide = () => { const l = mv.parentElement.querySelector('.loading'); if(l) l.remove(); };
+              mv.addEventListener('load', hide);
+              mv.addEventListener('error', () => { const l = mv.parentElement.querySelector('.loading'); if(l) l.textContent = '3D 雕塑加载失败'; });
+              setTimeout(hide, 8000); // 兜底：8 秒后无论如何移除占位
+            }
+          }
+        }
+      });
+    });
+  }
+
+  // 主题切换后重绘气质海报（显示卡片）：让同一份画像在亮/暗两种主题下都协调
+  function rerenderPoster(){
+    const box = document.getElementById('posterBox');
+    if(!box || !window.__posterOpts || !window.AestheticPoster) return;
+    const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    const o = Object.assign({}, window.__posterOpts, { theme: theme });
+    try { box.innerHTML = window.AestheticPoster.renderPosterSVG(o); } catch (e) {}
+  }
+
+  function downloadHero(){
+    const el = document.getElementById('heroImg');
+    if(!el || !el.src){ alert('本卡片没有 AI 出图'); return; }
+    const a = document.createElement('a');
+    a.href = el.src;
+    a.download = 'aesthetic_image_' + Date.now() + '.png';
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+
+  function copyLink(){
+    const link = location.href;
+    if(navigator.clipboard) navigator.clipboard.writeText(link).then(()=>alert('链接已复制'),()=>{});
+    else alert('请手动复制地址栏链接');
+  }
+
+  // 竖版 1080×1920：朋友圈 / 小红书 / Story 的标准画幅，直接存图就能发，
+  // 底部带上本卡片链接，图被转发出去也能回流到测评页。
+  function downloadStory(){
+    const o = window.__posterOpts;
+    if(!o || !window.AestheticPoster || !AestheticPoster.renderStorySVG){ alert('海报生成器未加载'); return; }
+    const btns = document.querySelectorAll('.actions button');
+    btns.forEach(b=>b.disabled = true);
+    try{
+      const svg = AestheticPoster.renderStorySVG(Object.assign({}, o, {
+        url: location.href,
+        theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'
+      }));
+      AestheticPoster.svgToPng(svg, 1080, 1920, function(blob){
+        btns.forEach(b=>b.disabled = false);
+        if(!blob){ alert('竖版海报导出失败，请改用截图'); return; }
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'aesthetic_story_' + Date.now() + '.png';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+      });
+    }catch(e){ btns.forEach(b=>b.disabled = false); alert('竖版海报导出失败：' + (e&&e.message||e)); }
+  }
+
+  function downloadPoster(){
+    const box = document.getElementById('posterBox');
+    const svg = box && box.querySelector('svg');
+    if(!svg){ alert('海报尚未生成'); return; }
+    const s = new XMLSerializer().serializeToString(svg);
+    if(!window.AestheticPoster){ alert('海报生成器未加载'); return; }
+    AestheticPoster.svgToPng(s, 800, 1130, function(blob){
+      if(!blob){ alert('海报导出失败，请改用截图'); return; }
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'aesthetic_poster_' + Date.now() + '.png';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+    });
+  }
+
+  (async function(){
+    const id = new URLSearchParams(location.search).get('id');
+    if(!id){ document.getElementById('root').innerHTML='<div class="card"><div class="err">缺少分享 ID</div></div>'; return; }
+    try{
+      const r = await fetch('/api/share/'+encodeURIComponent(id));
+      const j = await r.json();
+      if(!r.ok){
+        if(j && j.expired){
+          document.getElementById('root').innerHTML='<div class="card"><div class="err">⏳ 该分享卡片已过期失效</div>'
+            + '<div style="text-align:center;color:var(--mut);font-size:13px;margin-top:8px">分享链接默认有效期为 7 天，过期后无法再访问。<br>可请原作者重新生成一张新的分享卡。</div>'
+            + '<div class="actions" style="justify-content:center"><a class="ghost" href="index.html">我也要测 →</a></div></div>';
+        } else {
+          document.getElementById('root').innerHTML='<div class="card"><div class="err">'+(j.error||'分享不存在或已删除')+'</div></div>';
+        }
+        return;
+      }
+      document.title = (j.title||'神性测评') + ' · 分享卡片';
+      render(j);
+    }catch(e){
+      document.getElementById('root').innerHTML='<div class="card"><div class="err">加载失败：'+(e&&e.message||e)+'</div></div>';
+    }
+  })();
+</script>
+</body>
+</html>

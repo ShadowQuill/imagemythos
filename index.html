@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 审美系统 · 用 AI 量化人类的审美偏好</title>
+<meta name="description" content="基于人工智能的审美测评与研究平台：以「间接测量」方法量化审美认知，支持问卷采集、访谈执行、信效度分析与专家盲审，提供端到端的审美研究工具链。">
+<meta name="keywords" content="AI 审美,审美测评,审美量化,间接测量,问卷系统,专家盲审,信效度,美学研究">
+<meta name="author" content="AI 审美系统">
+<meta name="theme-color" content="#0b0e1a">
+<link rel="icon" href="/favicon.ico">
+<link rel="apple-touch-icon" href="/favicon.svg">
+<link rel="canonical" href="https://imagemythos.fun/">
+
+<!-- Open Graph / 社交分享 -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AI 审美系统">
+<meta property="og:title" content="AI 审美系统 · 用 AI 量化人类的审美偏好">
+<meta property="og:description" content="基于人工智能的审美测评与研究平台：问卷采集、访谈执行、信效度分析与专家盲审一站式完成。">
+<meta property="og:url" content="https://imagemythos.fun/">
+<meta property="og:image" content="https://imagemythos.fun/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="zh_CN">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AI 审美系统 · 用 AI 量化人类的审美偏好">
+<meta name="twitter:description" content="基于人工智能的审美测评与研究平台。">
+<meta name="twitter:image" content="https://imagemythos.fun/og-image.png">
+
+<!-- 结构化数据，利于搜索引擎理解 -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "AI 审美系统",
+  "url": "https://imagemythos.fun/",
+  "description": "基于人工智能的审美测评与研究平台，以间接测量方法量化审美认知。",
+  "applicationCategory": "ResearchApplication",
+  "inLanguage": "zh-CN"
+}
+</script>
+<style>
+  :root{
+    color-scheme:dark;
+    --bg:#0b0e1a; --panel:#141a30; --panel2:#1b2240; --line:#2a3358;
+    --txt:#eaeefb; --muted:#9aa6cc; --accent:#7c8cff; --accent2:#46d6c0;
+    --soft:rgba(124,140,255,.12); --hero-glow:#1c2552;
+  }
+  [data-theme="light"]{
+    color-scheme:light;
+    --bg:#eef1f8; --panel:#ffffff; --panel2:#f4f6fc; --line:#d7ddec;
+    --txt:#1a2138; --muted:#5d6480; --accent:#5b6cf0; --accent2:#1fae9a;
+    --soft:rgba(91,108,240,.10); --hero-glow:#dbe3ff;
+  }
+  .theme-btn{margin-left:14px;background:var(--soft);border:1px solid var(--line);color:var(--txt);
+    border-radius:9px;padding:6px 11px;cursor:pointer;font-size:13px;transition:.18s}
+  .theme-btn:hover{border-color:var(--accent)}
+  *{box-sizing:border-box}
+  html{background:var(--bg)}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:transparent;color:var(--txt);min-height:100vh;position:relative;
+    -webkit-font-smoothing:antialiased;transition:background-color .25s,color .25s}
+  /* GLSL 动态背景画布（着色器失败时回退到 body 渐变） */
+  #bgfx{position:fixed;inset:0;z-index:-1;width:100%;height:100%;display:block}
+  .nav{display:flex;align-items:center;justify-content:space-between;max-width:1080px;margin:0 auto;padding:20px 24px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.4px}
+  .brand .dot{width:12px;height:12px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 0 16px rgba(124,140,255,.6)}
+  .nav a{color:var(--muted);text-decoration:none;font-size:13.5px;margin-left:18px}
+  .nav a:hover{color:var(--txt)}
+  .hero{max-width:1080px;margin:0 auto;padding:64px 24px 40px;text-align:center}
+  .pill{display:inline-block;font-size:12px;letter-spacing:1.5px;color:var(--accent2);
+    border:1px solid var(--line);background:var(--soft);padding:6px 14px;border-radius:999px;margin-bottom:22px}
+  .hero h1{font-size:clamp(32px,6vw,56px);line-height:1.1;margin:0 0 16px;font-weight:800;
+    background:linear-gradient(120deg,#fff 30%,var(--accent) 75%,var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p.lead{color:var(--muted);font-size:16px;line-height:1.7;max-width:680px;margin:0 auto 30px}
+  .cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+  .btn{padding:13px 26px;border-radius:11px;font-size:15px;font-weight:600;text-decoration:none;transition:.18s;cursor:pointer;border:1px solid transparent}
+  .btn.primary{background:linear-gradient(120deg,var(--accent),#6a78f0);color:#fff;box-shadow:0 10px 30px rgba(124,140,255,.35)}
+  .btn.primary:hover{transform:translateY(-2px);box-shadow:0 14px 38px rgba(124,140,255,.5)}
+  .btn.ghost{background:transparent;color:var(--txt);border-color:var(--line)}
+  .btn.ghost:hover{border-color:var(--accent);color:var(--accent)}
+  .grid{max-width:1080px;margin:30px auto 60px;padding:0 24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:16px;padding:22px;
+    display:flex;flex-direction:column;gap:10px;transition:.18s;text-decoration:none;color:inherit}
+  .card:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 12px 32px rgba(124,140,255,.18)}
+  .card .ic{font-size:22px}
+  .card h3{margin:0;font-size:16.5px}
+  .card p{margin:0;color:var(--muted);font-size:13px;line-height:1.65}
+  .card .go{margin-top:auto;font-size:13px;color:var(--accent);font-weight:600}
+  footer{max-width:1080px;margin:0 auto;padding:26px 24px 48px;color:var(--muted);font-size:12.5px;text-align:center;border-top:1px solid var(--line)}
+  footer a{color:var(--accent2);text-decoration:none}
+  /* 新访客引导弹窗 */
+  .modal-mask{position:fixed;inset:0;background:rgba(7,10,22,.55);backdrop-filter:blur(3px);
+    display:flex;align-items:center;justify-content:center;padding:20px;z-index:999;
+    opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s}
+  .modal-mask.show{opacity:1;visibility:visible}
+  .modal{position:relative;max-width:440px;width:100%;background:linear-gradient(180deg,var(--panel),var(--panel2));
+    border:1px solid var(--line);border-radius:18px;padding:30px 28px 26px;text-align:center;
+    box-shadow:0 24px 60px rgba(0,0,0,.45);transform:translateY(14px) scale(.98);transition:transform .3s}
+  .modal-mask.show .modal{transform:translateY(0) scale(1)}
+  .modal .emoji{font-size:34px;line-height:1;margin-bottom:14px}
+  .modal h3{margin:0 0 10px;font-size:19px;color:var(--txt)}
+  .modal p{margin:0 0 22px;color:var(--muted);font-size:14.5px;line-height:1.7}
+  .modal p b{color:var(--accent);font-weight:600}
+  .modal .actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .modal .close{position:absolute;top:12px;right:14px;width:30px;height:30px;border:none;background:transparent;
+    color:var(--muted);font-size:20px;line-height:1;cursor:pointer;border-radius:8px;transition:.15s}
+  .modal .close:hover{background:var(--soft);color:var(--txt)}
+  .modal .btn{padding:11px 22px;font-size:14.5px}
+  @media (max-width:640px){
+    .modal{padding:26px 20px 22px}
+    .modal h3{font-size:17px}
+    .modal p{font-size:13.5px}
+    .modal .btn{width:100%}
+  }
+  @media (max-width:640px){
+    .nav{padding:14px 16px;flex-direction:column;gap:10px}
+    .nav>div{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+    .nav a{margin:0}
+    .theme-btn{margin:0}
+    .hero{padding:40px 18px 28px}
+    .hero h1{font-size:clamp(28px,8vw,40px)}
+    .grid{grid-template-columns:1fr;padding:0 16px}
+    .cta .btn{width:100%}
+    footer{font-size:11.5px}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bgfx"></canvas>
+
+<div class="nav">
+  <div class="brand"><span class="dot"></span> AI 审美系统</div>
+  <div>
+    <button id="themeToggle" class="theme-btn" title="切换深浅主题">☀️ 切亮色</button>
+    <a href="问卷系统/index.html">问卷系统</a>
+    <a href="ai-aesthetic-engine/admin.html">数据看板</a>
+    <a href="console.html">模块导航</a>
+    <a href="ai-aesthetic-engine/index.html">引擎 Demo</a>
+  </div>
+</div>
+
+<section class="hero">
+  <span class="pill">AI AESTHETIC INTELLIGENCE</span>
+  <h1>用 AI 量化人类的<br>审美偏好</h1>
+  <p class="lead">基于人工智能的审美测评与研究平台。以「间接测量」方法量化审美认知，
+    支持问卷采集、访谈执行、信效度分析与专家盲审，为审美研究提供端到端工具链。</p>
+  <div class="cta">
+    <a class="btn primary" href="console.html">进入研究控制台</a>
+    <a class="btn ghost" href="ai-aesthetic-engine/index.html">体验 AI 引擎</a>
+  </div>
+</section>
+
+<div class="grid">
+  <a class="card" href="问卷系统/index.html">
+    <div class="ic">📋</div>
+    <h3>问卷与访谈系统</h3>
+    <p>筛选问卷、受访者库、访谈执行（引擎跑分）、数据导入/导出与信效度预测试。</p>
+    <span class="go">进入 →</span>
+  </a>
+  <a class="card" href="ai-aesthetic-engine/index.html">
+    <div class="ic">🧠</div>
+    <h3>AI 审美引擎</h3>
+    <p>九型 · 神圣理念题项「间接测量」原型，本地跑分与向量映射演示。</p>
+    <span class="go">进入 →</span>
+  </a>
+  <a class="card" href="盲审/web/index.html">
+    <div class="ic">⚖️</div>
+    <h3>G1 盲审平台</h3>
+    <p>题项集盲审与评分量规，载入 blindset 后逐项评审并自动汇总。</p>
+    <span class="go">进入 →</span>
+  </a>
+  <a class="card" href="问卷系统/筛选问卷/index.html">
+    <div class="ic">🎯</div>
+    <h3>受访者筛选</h3>
+    <p>招募受访者用的筛选问卷：模板列定义、随机样本与生成脚本，用于定量采集前准入筛选。</p>
+    <span class="go">进入 →</span>
+  </a>
+</div>
+
+<footer>
+  AI 审美系统 · 研究平台 &nbsp;·&nbsp; 数据按部署网址隔离存储，请定期用控制台「整库备份导出」下载本地存档。<br>
+  访问地址：<a href="https://imagemythos.fun/">imagemythos.fun</a>
+  · <a href="stats/visits.html">访问统计</a>
+  · <a href="og-image.png">分享卡片</a>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('themeToggle');
+  if(!t) return;
+  function apply(theme){
+    if(theme==='light'){document.documentElement.setAttribute('data-theme','light');t.textContent='🌙 切暗色';}
+    else{document.documentElement.removeAttribute('data-theme');t.textContent='☀️ 切亮色';}
+  }
+  var saved=localStorage.getItem('aae-theme');
+  if(!saved){saved=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';}
+  apply(saved);
+  t.addEventListener('click',function(){
+    var cur=document.documentElement.getAttribute('data-theme')==='light'?'light':'dark';
+    var next=cur==='light'?'dark':'light';
+    localStorage.setItem('aae-theme',next);apply(next);
+  });
+})();
+</script>
+
+<div class="modal-mask" id="welcomeModal" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
+  <div class="modal">
+    <button class="close" id="welcomeClose" aria-label="关闭">×</button>
+    <div class="emoji">👋</div>
+    <h3 id="welcomeTitle">欢迎来到 AI 审美系统</h3>
+    <p>如果您不是来研究具体的模型数据，<br>建议先点击「<b>体验 AI 引擎</b>」亲自感受一下。</p>
+    <div class="actions">
+      <a class="btn primary" href="ai-aesthetic-engine/index.html" id="welcomeEngine">体验 AI 引擎</a>
+      <button class="btn ghost" id="welcomeDismiss">我知道了</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var KEY='aae-home-popup-closed';
+  var mask=document.getElementById('welcomeModal');
+  function close(){mask.classList.remove('show');try{sessionStorage.setItem(KEY,'1');}catch(e){}}
+  // 本次会话已关闭过则不再弹出（关闭标签页后会话结束，下次打开会再弹）
+  try{ if(sessionStorage.getItem(KEY)==='1') return; }catch(e){}
+  // 稍作延迟，避免与首屏动画冲突
+  setTimeout(function(){ if(mask) mask.classList.add('show'); }, 900);
+  var c=document.getElementById('welcomeClose');
+  var d=document.getElementById('welcomeDismiss');
+  var eng=document.getElementById('welcomeEngine');
+  if(c) c.addEventListener('click',close);
+  if(d) d.addEventListener('click',close);
+  if(eng) eng.addEventListener('click',close);
+  if(mask) mask.addEventListener('click',function(e){ if(e.target===mask) close(); });
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&mask.classList.contains('show')) close(); });
+})();
+</script>
+
+<script>
+/* GLSL 动态背景：流动紫→青渐变场（与站点主色一致），暗/亮主题自适应。
+   失败时回退到原 CSS 径向渐变。尊重 prefers-reduced-motion。 */
+(function(){
+  var canvas=document.getElementById('bgfx');
+  if(!canvas) return;
+  var gl=canvas.getContext('webgl')||canvas.getContext('experimental-webgl');
+  if(!gl){
+    // 回退：恢复 body 渐变
+    document.body.style.background='radial-gradient(1100px 620px at 75% -12%,var(--hero-glow) 0%,var(--bg) 58%)';
+    return;
+  }
+  var vs='attribute vec2 aPos;void main(){gl_Position=vec4(aPos,0.0,1.0);}';
+  var fs=[
+    'precision highp float;',
+    'uniform vec2 uRes;uniform float uTime;uniform float uLight;',
+    'void main(){',
+    '  vec2 uv=gl_FragCoord.xy/uRes.xy;',
+    '  float t=uTime*0.06;',
+    '  float f=sin(uv.x*3.0+t*1.3)+sin(uv.y*4.0-t*1.1)+sin((uv.x+uv.y)*3.5+t*0.9);',
+    '  f=f/3.0;',
+    '  vec3 purple=vec3(0.486,0.549,1.0);',
+    '  vec3 cyan=vec3(0.275,0.839,0.753);',
+    '  vec3 col=mix(purple,cyan,f*0.5+0.5);',
+    '  vec3 base=(uLight<0.5)?vec3(0.043,0.055,0.102):vec3(0.933,0.945,0.972);',
+    '  float d=distance(uv,vec2(0.82,1.06));',
+    '  float glow=smoothstep(0.95,0.0,d);',
+    '  vec3 outc=mix(base,col,glow*0.6+f*0.05);',
+    '  gl_FragColor=vec4(outc,1.0);',
+    '}'
+  ].join('\n');
+  function sh(type,src){var s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);return s;}
+  var prog=gl.createProgram();
+  gl.attachShader(prog,sh(gl.VERTEX_SHADER,vs));
+  gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,fs));
+  gl.linkProgram(prog);
+  if(!gl.getProgramParameter(prog,gl.LINK_STATUS)){
+    document.body.style.background='radial-gradient(1100px 620px at 75% -12%,var(--hero-glow) 0%,var(--bg) 58%)';
+    return;
+  }
+  gl.useProgram(prog);
+  var buf=gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1, 3,-1, -1,3]),gl.STATIC_DRAW);
+  var aPos=gl.getAttribLocation(prog,'aPos');
+  gl.enableVertexAttribArray(aPos);
+  gl.vertexAttribPointer(aPos,2,gl.FLOAT,false,0,0);
+  var uRes=gl.getUniformLocation(prog,'uRes');
+  var uTime=gl.getUniformLocation(prog,'uTime');
+  var uLight=gl.getUniformLocation(prog,'uLight');
+  function resize(){
+    var dpr=Math.min(window.devicePixelRatio||1,2);
+    canvas.width=Math.floor(innerWidth*dpr);
+    canvas.height=Math.floor(innerHeight*dpr);
+    gl.viewport(0,0,canvas.width,canvas.height);
+  }
+  resize();
+  addEventListener('resize',resize);
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var start=performance.now();
+  function isLight(){return document.documentElement.getAttribute('data-theme')==='light';}
+  function frame(now){
+    gl.uniform2f(uRes,canvas.width,canvas.height);
+    gl.uniform1f(uTime,(now-start)/1000);
+    gl.uniform1f(uLight,isLight()?1.0:0.0);
+    gl.drawArrays(gl.TRIANGLES,0,3);
+    if(!reduce) requestAnimationFrame(frame);
+  }
+  if(reduce){ frame(start); } else { requestAnimationFrame(frame); }
+  // 主题切换后重绘一帧（reduced-motion 下也需同步底色）
+  document.addEventListener('click',function(){ if(reduce) frame(performance.now()); });
+})();
+</script>
+
+</body>
+</html>
