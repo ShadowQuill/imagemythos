@@ -415,7 +415,8 @@ const MIME = {
   '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.txt': 'text/plain; charset=utf-8',
   '.pdf': 'application/pdf',
   '.glb': 'model/vnd.gltf-binary', '.gltf': 'model/gltf+json',
-  '.obj': 'text/plain; charset=utf-8', '.zip': 'application/zip'
+  '.obj': 'text/plain; charset=utf-8', '.zip': 'application/zip',
+  '.mp4': 'video/mp4', '.webm': 'video/webm', '.mov': 'video/quicktime'
 };
 function setCORS(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -464,10 +465,39 @@ function isProtectedPath(fp) {
   return BLOCKED_EXT.has(path.extname(norm).toLowerCase());
 }
 
-function serveFile(fp, res) {
+// 支持 HTTP Range 请求（视频/音频流式播放、可拖动进度必需）。
+// 浏览器 <video> 会先发 Range 头探测，不支持则返回 206 + 对应字节段；无 Range 时退化为全量 200。
+function serveFile(fp, res, req) {
   const ext = path.extname(fp).toLowerCase();
-  res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
-  fs.createReadStream(fp).pipe(res);
+  const contentType = MIME[ext] || 'application/octet-stream';
+  fs.stat(fp, (err, st) => {
+    if (err || !st.isFile()) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('404'); return;
+    }
+    const total = st.size;
+    const headers = { 'Content-Type': contentType, 'Accept-Ranges': 'bytes' };
+    const range = req && req.headers && req.headers['range'];
+    if (range) {
+      const m = /bytes=(\d*)-(\d*)/.exec(range);
+      if (m) {
+        let start = m[1] ? parseInt(m[1], 10) : 0;
+        let end = m[2] ? parseInt(m[2], 10) : total - 1;
+        if (isNaN(start) || isNaN(end) || start > end || end >= total) {
+          res.writeHead(416, { 'Content-Range': 'bytes */' + total });
+          res.end(); return;
+        }
+        headers['Content-Range'] = 'bytes ' + start + '-' + end + '/' + total;
+        headers['Content-Length'] = end - start + 1;
+        res.writeHead(206, headers);
+        fs.createReadStream(fp, { start, end }).pipe(res);
+        return;
+      }
+    }
+    headers['Content-Length'] = total;
+    res.writeHead(200, headers);
+    fs.createReadStream(fp).pipe(res);
+  });
 }
 
 // 启动后自动打开浏览器（NO_OPEN=1 可禁用，便于无桌面环境 / 远程部署）
@@ -1596,7 +1626,7 @@ const server = http.createServer(async (req, res) => {
     const fp = path.join(SHARE_IMG_DIR, mShareImg[1]);
     if (!fs.existsSync(fp)) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('404'); return; }
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable'); // 内容随 id 不变，可长缓存
-    return serveFile(fp, res);
+    return serveFile(fp, res, req);
   }
 
   // 分享卡 3D 雕塑：公开可读的 GLB/OBJ（存放在 backend/share-models，不在 STATIC_DIR 内，故单独走一条路由）
@@ -1605,7 +1635,7 @@ const server = http.createServer(async (req, res) => {
     const fp = path.join(SHARE_MODEL_DIR, mShareModel[1]);
     if (!fs.existsSync(fp)) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('404'); return; }
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-    return serveFile(fp, res);
+    return serveFile(fp, res, req);
   }
 
   // 3D 雕塑（引擎页按需生成）：公开可读的 GLB/OBJ（存放在 backend/3d-models，不在 STATIC_DIR 内，单独走一条路由）
@@ -1614,7 +1644,7 @@ const server = http.createServer(async (req, res) => {
     const fp = path.join(MODEL_DIR, mModel[1]);
     if (!fs.existsSync(fp)) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('404'); return; }
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-    return serveFile(fp, res);
+    return serveFile(fp, res, req);
   }
 
   // 神性视频（引擎页按需生成）：公开可读的 MP4/MOV/WebM（存放在 backend/videos，单独走一条路由）
@@ -1623,7 +1653,7 @@ const server = http.createServer(async (req, res) => {
     const fp = path.join(VIDEO_DIR, mVideo[1]);
     if (!fs.existsSync(fp)) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('404'); return; }
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-    return serveFile(fp, res);
+    return serveFile(fp, res, req);
   }
 
   // 分享页：带合法 id 时，把社交预览 meta 注入 <head> 后再返回（抓取器不执行 JS，见 buildShareMeta）
@@ -1676,7 +1706,7 @@ const server = http.createServer(async (req, res) => {
       const idx = path.join(filePath, 'index.html');
       fs.stat(idx, (e3, st3) => {
         if (e3 || !st3.isFile()) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('404 Not Found: ' + rel); return; }
-        serveFile(idx, res);
+        serveFile(idx, res, req);
       });
       return;
     }
@@ -1684,11 +1714,11 @@ const server = http.createServer(async (req, res) => {
       const alt = filePath + '.html';
       fs.stat(alt, (e2, st2) => {
         if (e2 || !st2.isFile()) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('404 Not Found: ' + rel); return; }
-        serveFile(alt, res);
+        serveFile(alt, res, req);
       });
       return;
     }
-    serveFile(filePath, res);
+    serveFile(filePath, res, req);
   });
 });
 
