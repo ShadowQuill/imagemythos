@@ -989,7 +989,8 @@
           if(!res || !res.model_path){ msg.textContent = '3D 生成未返回模型，请重试'; btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '重新生成'; return; }
           window.__last3d = res.model_path || null;
           wrap.innerHTML = '<div class="sec-t">3D 雕塑 · 可拖拽旋转 / 滚轮缩放</div>'
-            + '<div class="model3d"><model-viewer src="'+esc(res.model_path)+'" camera-controls auto-rotate shadow-intensity="1" alt="气质 3D 雕塑" loading="eager" min-camera-orbit="auto 10deg 20%" max-camera-orbit="auto 170deg 300%"></model-viewer><div class="loading">正在加载 3D 雕塑…</div></div>';
+            + '<div class="model3d"><model-viewer src="'+esc(res.model_path)+'" camera-controls auto-rotate shadow-intensity="1" alt="气质 3D 雕塑" loading="eager" min-camera-orbit="auto 10deg 20%" max-camera-orbit="auto 170deg 300%"></model-viewer><div class="loading">正在加载 3D 雕塑…</div></div>'
+            + '<div style="margin-top:8px"><a class="mini btn-green" id="dl3d" href="'+esc(res.model_path)+'" download="aesthetic_3d_'+stamp()+'.glb" style="text-decoration:none;display:inline-block">⬇ 导出 3D 模型（.glb）</a></div>';
           if(!customElements.get('model-viewer')){
             const m = document.createElement('script'); m.type = 'module';
             m.src = '/ai-aesthetic-engine/assets/model-viewer.min.js';
@@ -1012,7 +1013,8 @@
   // 神性视频：文生视频，调用 /api/video/generate
   function renderVideo(wrap, url, msg, btn){
     if(!url){ msg.textContent = '生成失败，请稍后重试'; return; }
-    wrap.innerHTML = '<video src="'+esc(url)+'" controls autoplay loop muted playsinline style="max-width:100%;border-radius:10px;margin-top:6px"></video>';
+    wrap.innerHTML = '<video src="'+esc(url)+'" controls autoplay loop muted playsinline style="max-width:100%;border-radius:10px;margin-top:6px"></video>'
+      + '<div style="margin-top:8px"><a class="mini btn-green" id="dlVideo" href="'+esc(url)+'" download="aesthetic_video_'+stamp()+'.mp4" style="text-decoration:none;display:inline-block">⬇ 下载视频</a></div>';
     msg.textContent = ''; btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '重新生成';
   }
 
