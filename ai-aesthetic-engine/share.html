@@ -71,6 +71,11 @@
   .ghost{background:#efeafc;color:#5a3fc0}
   .actions a{display:inline-block;text-decoration:none;font-size:15px;border:none;border-radius:12px;padding:12px 20px;cursor:pointer;text-align:center;box-sizing:border-box}
   .actions a.ghost{background:#efeafc;color:#5a3fc0}
+  /* 折叠面板内的下载 / 导出入口：常驻显示（不随折叠收起），与「先看介绍再看生成物」版式协调 */
+  .exp-ops{padding:0 16px 16px}
+  .exp-ops a.dl-link{display:inline-block;background:#efeafc;color:#5a3fc0;text-decoration:none;font-size:14px;border-radius:10px;padding:9px 16px;cursor:pointer}
+  .exp-ops a.dl-link:hover{filter:brightness(1.04)}
+  [data-theme="dark"] .exp-ops a.dl-link{background:#2a2540;color:#c3b6ff}
   .meta{margin-top:18px;font-size:12px;color:var(--mut);text-align:center}
   .err{padding:40px 20px;text-align:center;color:#c0392b}
   a{color:var(--acc);text-decoration:none}
@@ -226,19 +231,22 @@
     // 没出图时海报顶上来，保证每张分享卡都有像样的视觉，不会是一堵纯文字墙。
     const posterBlock = posterSVG ? '<div class="poster" id="posterBox">'+posterSVG+'</div>' : '';
     const heroBlock = img ? '<figure class="hero-fig"><img class="hero" id="heroImg" src="'+esc(img)+'" alt="AI 生成的气质影像"><figcaption class="media-cap">🖼️ 气质影像</figcaption></figure>' : '';
-    const topVisual = img ? heroBlock : posterBlock;
-    const belowVisual = (img && posterBlock) ? '<div class="sec-t">气质名片</div>' + posterBlock : '';
+    // poster（气质名片）始终排在维度介绍之后；hero（出图）归入下方「我的生成物」区——两者位置改由下方 render 统一编排，不再用 topVisual/belowVisual
 
     // 视频 / 3D 雕塑：默认折叠、点击展开（避免一次性加载过重的媒体，突出出图主视觉）
     const videoHTML = videoURL
       ? '<div class="expand" data-kind="video" data-src="'+esc(videoURL)+'">'
         + '<button class="expand-head" type="button">🎬 神性视频<span class="expand-hint">点击展开</span><span class="chev">＋</span></button>'
-        + '<div class="expand-body"></div></div>'
+        + '<div class="expand-body"></div>'
+        + '<div class="exp-ops"><a class="dl-link" href="'+esc(videoURL)+'" download="aesthetic_video_'+Date.now()+'.mp4">⬇ 下载视频</a></div>'
+        + '</div>'
       : '';
     const modelHTML = modelURL
       ? '<div class="expand" data-kind="model3d" data-src="'+esc(modelURL)+'">'
         + '<button class="expand-head" type="button">🗿 3D 神性雕塑 · 可拖拽旋转 / 滚轮缩放<span class="expand-hint">点击展开</span><span class="chev">＋</span></button>'
-        + '<div class="expand-body"></div></div>'
+        + '<div class="expand-body"></div>'
+        + '<div class="exp-ops"><a class="dl-link" href="'+esc(modelURL)+'" download="aesthetic_3d_'+Date.now()+'.glb">⬇ 导出 3D 模型（.glb）</a></div>'
+        + '</div>'
       : '';
 
     // 有效期提示：expires_at 为空表示永久有效（兼容旧分享卡）
@@ -258,22 +266,24 @@
       expiryHTML = '<div class="expiry">永久有效分享卡</div>';
     }
 
+    // 版式顺序（用户要求）：先介绍相关维度与整体性格 → 气质名片/提示词/风格 → 最后才是生成的「出图 / 视频 / 3D」。
     document.getElementById('root').innerHTML = ''
       + '<div class="card">'
       +   '<div class="brand">AI 审美系统 · 神性测评体验</div>'
-      +   topVisual
-      +   videoHTML
-      +   modelHTML
       +   '<h1 class="title">'+esc(s.title||'我的神性测评')+'</h1>'
       +   expiryHTML
       +   (mood.length ? '<div class="mood">'+mood.map(m=>'<span>'+esc(m)+'</span>').join('')+'</div>' : '')
       +   (sel.length ? '<div class="sec-t">气质框架</div><div class="pills">'+pills+'</div>' : '')
       +   '<div class="sec-t">统一美学向量（8 轴）</div>' + vecHTML
       +   (d.explanation ? '<div class="sec-t">为什么这样彰显气质</div><div class="exp">'+esc(d.explanation)+'</div>' : '')
-      +   belowVisual
+      +   (posterSVG ? '<div class="sec-t">气质名片</div>' + posterBlock : '')
       +   (prompt ? '<div class="sec-t">影像文生图提示词</div><div class="kv">'+esc(prompt)+'</div>' : '')
       +   (space.text ? '<div class="sec-t">空间 / 视觉风格</div><div class="kv">'+esc(space.text)+'</div>' : '')
       +   (pal ? '<div class="sec-t">调色走向</div><div class="kv">'+esc(pal)+'</div>' : '')
+      +   '<div class="sec-t" style="margin-top:24px">我的生成物</div>'
+      +   heroBlock
+      +   videoHTML
+      +   modelHTML
       +   '<div class="actions">'
       +     '<button class="primary" onclick="copyLink()">复制卡片链接</button>'
       +     (posterSVG ? '<button class="ghost" onclick="downloadPoster()">下载海报图</button>' : '')
