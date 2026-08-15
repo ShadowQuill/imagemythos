@@ -99,6 +99,34 @@
   function $(id){ return document.getElementById(id); }
   function getToken(){ try { return localStorage.getItem('aae_token') || null; } catch(e){ return null; } }
   function authHeaders(){ const t=getToken(); return t ? { 'Authorization': 'Bearer ' + t } : {}; }
+  // 异步生成任务轮询：提交拿到 jobId 后定时查询 /api/job/:id（与 index.html 同款逻辑）
+  function startJob(jobId, cb) {
+    const start = Date.now();
+    let stopped = false;
+    async function tick() {
+      if (stopped) return;
+      let j = null;
+      try { const r = await fetch('/api/job/' + encodeURIComponent(jobId)); if (r.ok) j = await r.json(); }
+      catch (e) { j = null; } // 网络抖动：忽略，下一轮继续
+      if (!j) { setTimeout(tick, 3000); return; }
+      const secs = Math.round((Date.now() - start) / 1000);
+      if (j.status === 'done') { stopped = true; cb.done && cb.done(j.result, secs); return; }
+      if (j.status === 'error') { stopped = true; cb.error && cb.error(j, secs); return; }
+      if (cb.tick) cb.tick(j, secs);
+      setTimeout(tick, 3000);
+    }
+    setTimeout(tick, 600);
+    return () => { stopped = true; };
+  }
+  // 把云端/服务端原始错误翻译成人话
+  function friendlyGenErr(j, fallback) {
+    const msg = (j && (j.error || j.reason)) || fallback || '失败';
+    if (/额度|quota|limit/i.test(msg)) return '额度已用完，登录后可用本人额度继续（' + msg + '）';
+    if (/rate|限频|too many/i.test(msg)) return '请求过于频繁，请稍后再试（' + msg + '）';
+    if (/超时|timeout/i.test(msg)) return '生成超时，云端繁忙，请稍后重试（' + msg + '）';
+    if (/key|token|鉴权|401|unauthor/i.test(msg)) return '生成服务鉴权失效，请联系管理员（' + msg + '）';
+    return String(msg);
+  }
 
   function getScene(){
     const p = new URLSearchParams(location.search).get('scene');
@@ -221,18 +249,34 @@
   async function reqImg(btn, name){
     if(!currentImgPrompt){ alert('暂无可用的出图提示词'); return; }
     const imgEl = $('sceneImg'), msg = $('sceneImgMsg'), dl = $('dlSceneImg');
-    imgEl.style.display='none'; imgEl.src=''; dl.style.display='none'; msg.textContent='生成中（约 10–60 秒）…';
-    btn.disabled=true; btn.style.opacity='0.5'; btn.textContent='生成中…';
+    imgEl.style.display='none'; imgEl.src=''; dl.style.display='none'; msg.textContent='提交中…';
+    btn.disabled=true; btn.style.opacity='0.5'; btn.textContent='出图中…';
     try{
       const provider = $('sceneProvider').value;
       const body = { prompt: currentImgPrompt, opts:{} };
       if(provider) body.opts.provider = provider;
       const r = await fetch('/api/generate-image',{method:'POST',headers:Object.assign({'Content-Type':'application/json'}, authHeaders()),body:JSON.stringify(body)});
-      const j = await r.json();
-      if(j.image){ imgEl.src=j.image; imgEl.style.display='block'; dl.style.display='inline-block'; msg.textContent=''; }
-      else msg.textContent = '未出图：' + (j.reason||'未知原因') + '（可复制上方方案到文生图工具）';
-    }catch(e){ msg.textContent='请求失败：'+(e&&e.message||e)+'（后端未运行或未配置密钥）'; }
-    finally{ btn.disabled=false; btn.style.opacity='1'; btn.textContent='重新生成'; }
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok || !j.jobId){
+        msg.textContent = friendlyGenErr(j, '提交出图失败');
+        btn.disabled=false; btn.style.opacity='1'; btn.textContent='重新生成';
+        if(j.needLogin && confirm('出图额度已用完，登录后即可使用本人额度继续出图。是否现在登录？')) location.href='index.html';
+        return;
+      }
+      startJob(j.jobId, {
+        tick: (job, s) => { msg.textContent = '出图中…（已等待 ' + s + 's）'; },
+        done: (res) => {
+          if(res && res.image){ imgEl.src=res.image; imgEl.style.display='block'; dl.style.display='inline-block'; msg.textContent=''; }
+          else msg.textContent = '未出图：' + (res&&(res.error||res.reason)||'未知原因') + '（可复制上方方案到文生图工具）';
+          if(res && res.needLogin && !res.image && confirm('出图额度已用完，登录后即可使用本人额度继续出图。是否现在登录？')) location.href='index.html';
+          btn.disabled=false; btn.style.opacity='1'; btn.textContent='重新生成';
+        },
+        error: (job) => {
+          msg.textContent = friendlyGenErr(job, '出图失败');
+          btn.disabled=false; btn.style.opacity='1'; btn.textContent='重新生成';
+        }
+      });
+    }catch(e){ msg.textContent='请求失败：'+(e&&e.message||e)+'（后端未运行或未配置密钥）'; btn.disabled=false; btn.style.opacity='1'; btn.textContent='重新生成'; }
   }
 
   // 初始化
