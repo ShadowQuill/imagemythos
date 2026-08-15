@@ -1671,6 +1671,15 @@ const server = http.createServer(async (req, res) => {
     }
   }
   fs.stat(filePath, (err, st) => {
+    // 目录请求（如 /ai-aesthetic-engine/）回退到该目录下的 index.html
+    if (!err && st.isDirectory()) {
+      const idx = path.join(filePath, 'index.html');
+      fs.stat(idx, (e3, st3) => {
+        if (e3 || !st3.isFile()) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('404 Not Found: ' + rel); return; }
+        serveFile(idx, res);
+      });
+      return;
+    }
     if (err || !st.isFile()) {
       const alt = filePath + '.html';
       fs.stat(alt, (e2, st2) => {
