@@ -230,7 +230,15 @@
     // 主视觉取舍：有真实 AI 出图就让它占据首屏（观感最强），气质海报退到下方作可下载的「名片」；
     // 没出图时海报顶上来，保证每张分享卡都有像样的视觉，不会是一堵纯文字墙。
     const posterBlock = posterSVG ? '<div class="poster" id="posterBox">'+posterSVG+'</div>' : '';
-    const heroBlock = img ? '<figure class="hero-fig"><img class="hero" id="heroImg" src="'+esc(img)+'" alt="AI 生成的气质影像"><figcaption class="media-cap">🖼️ 气质影像</figcaption></figure>' : '';
+    window.__heroSrc = img || null;
+    // 出图同样改为默认折叠的展开框（与视频/3D 一致），框内附「下载图片」入口
+    const heroHTML = img
+      ? '<div class="expand" data-kind="image" data-src="'+esc(img)+'">'
+        + '<button class="expand-head" type="button">🖼️ 气质影像<span class="expand-hint">点击展开</span><span class="chev">＋</span></button>'
+        + '<div class="expand-body"></div>'
+        + '<div class="exp-ops"><a class="dl-link" href="'+esc(img)+'" download="aesthetic_image_'+Date.now()+'.png">⬇ 下载图片</a></div>'
+        + '</div>'
+      : '';
     // poster（气质名片）始终排在维度介绍之后；hero（出图）归入下方「我的生成物」区——两者位置改由下方 render 统一编排，不再用 topVisual/belowVisual
 
     // 视频 / 3D 雕塑：默认折叠、点击展开（避免一次性加载过重的媒体，突出出图主视觉）
@@ -266,7 +274,7 @@
       expiryHTML = '<div class="expiry">永久有效分享卡</div>';
     }
 
-    // 版式顺序（用户要求）：气质名片置顶 → 维度 / 整体性格介绍（按阅读逻辑） → 生成的出图 / 视频 / 3D 放最底。
+    // 版式顺序（用户要求）：气质名片置顶 → 维度 / 整体性格介绍 → 我的生成物（出图/视频/3D 折叠框）→ 提示词/风格/调色放最末。
     document.getElementById('root').innerHTML = ''
       + '<div class="card">'
       +   '<div class="brand">AI 审美系统 · 神性测评体验</div>'
@@ -277,13 +285,13 @@
       +   (sel.length ? '<div class="sec-t">气质框架</div><div class="pills">'+pills+'</div>' : '')
       +   '<div class="sec-t">统一美学向量（8 轴）</div>' + vecHTML
       +   (d.explanation ? '<div class="sec-t">为什么这样彰显气质</div><div class="exp">'+esc(d.explanation)+'</div>' : '')
+      +   '<div class="sec-t" style="margin-top:24px">我的生成物</div>'
+      +   heroHTML
+      +   videoHTML
+      +   modelHTML
       +   (prompt ? '<div class="sec-t">影像文生图提示词</div><div class="kv">'+esc(prompt)+'</div>' : '')
       +   (space.text ? '<div class="sec-t">空间 / 视觉风格</div><div class="kv">'+esc(space.text)+'</div>' : '')
       +   (pal ? '<div class="sec-t">调色走向</div><div class="kv">'+esc(pal)+'</div>' : '')
-      +   '<div class="sec-t" style="margin-top:24px">我的生成物</div>'
-      +   heroBlock
-      +   videoHTML
-      +   modelHTML
       +   '<div class="actions">'
       +     '<button class="primary" onclick="copyLink()">复制卡片链接</button>'
       +     (posterSVG ? '<button class="ghost" onclick="downloadPoster()">下载海报图</button>' : '')
@@ -311,6 +319,12 @@
             v.src = src; v.controls = true; v.autoplay = true; v.loop = true;
             v.muted = true; v.playsInline = true; v.style.display = 'block';
             body.appendChild(v);
+          } else if(kind === 'image'){
+            const im = document.createElement('img');
+            im.src = src; im.className = 'img'; im.alt = 'AI 生成的气质影像';
+            im.id = 'heroImg';
+            im.style.marginTop = '6px';
+            body.appendChild(im);
           } else if(kind === 'model3d'){
             body.innerHTML = '<div class="model3d"><model-viewer src="'+esc(src)+'" camera-controls auto-rotate '
               + 'shadow-intensity="1" ar ar-modes="webxr scene-viewer quick-look" alt="气质 3D 雕塑" '
@@ -345,9 +359,10 @@
 
   function downloadHero(){
     const el = document.getElementById('heroImg');
-    if(!el || !el.src){ alert('本卡片没有 AI 出图'); return; }
+    const src = (el && el.src) ? el.src : window.__heroSrc;
+    if(!src){ alert('本卡片没有 AI 出图'); return; }
     const a = document.createElement('a');
-    a.href = el.src;
+    a.href = src;
     a.download = 'aesthetic_image_' + Date.now() + '.png';
     document.body.appendChild(a); a.click(); a.remove();
   }
