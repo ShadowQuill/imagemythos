@@ -266,17 +266,17 @@
       expiryHTML = '<div class="expiry">永久有效分享卡</div>';
     }
 
-    // 版式顺序（用户要求）：先介绍相关维度与整体性格 → 气质名片/提示词/风格 → 最后才是生成的「出图 / 视频 / 3D」。
+    // 版式顺序（用户要求）：气质名片置顶 → 维度 / 整体性格介绍（按阅读逻辑） → 生成的出图 / 视频 / 3D 放最底。
     document.getElementById('root').innerHTML = ''
       + '<div class="card">'
       +   '<div class="brand">AI 审美系统 · 神性测评体验</div>'
       +   '<h1 class="title">'+esc(s.title||'我的神性测评')+'</h1>'
       +   expiryHTML
       +   (mood.length ? '<div class="mood">'+mood.map(m=>'<span>'+esc(m)+'</span>').join('')+'</div>' : '')
+      +   (posterSVG ? '<div class="sec-t">气质名片</div>' + posterBlock : '')
       +   (sel.length ? '<div class="sec-t">气质框架</div><div class="pills">'+pills+'</div>' : '')
       +   '<div class="sec-t">统一美学向量（8 轴）</div>' + vecHTML
       +   (d.explanation ? '<div class="sec-t">为什么这样彰显气质</div><div class="exp">'+esc(d.explanation)+'</div>' : '')
-      +   (posterSVG ? '<div class="sec-t">气质名片</div>' + posterBlock : '')
       +   (prompt ? '<div class="sec-t">影像文生图提示词</div><div class="kv">'+esc(prompt)+'</div>' : '')
       +   (space.text ? '<div class="sec-t">空间 / 视觉风格</div><div class="kv">'+esc(space.text)+'</div>' : '')
       +   (pal ? '<div class="sec-t">调色走向</div><div class="kv">'+esc(pal)+'</div>' : '')
