@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/ShadowQuill/imagemythos/main/github-social-preview.png" alt="ImageMythos" width="100%">
+</p>
+
 # ImageMythos · AI 审美系统
 
 > 把一个人的「审美画像」变成**可生成的神性视觉**。
