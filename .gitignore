@@ -57,3 +57,6 @@ console.html
 
 # 引擎运行时产物（用户生成内容）
 ai-aesthetic-engine/generated/
+
+# ===== 本地智能体记忆（不上仓库） =====
+.workbuddy/

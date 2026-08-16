@@ -31,6 +31,9 @@
   .pill b{color:#7a5fd0}
   .exp{white-space:pre-wrap;background:#fbfaf8;border:1px solid var(--line);border-radius:12px;
     padding:14px;font-size:14px;margin-top:8px}
+  .exp.ai-summary{background:#f6f3ff;border-color:#e3d9ff}
+  .ai-tag{display:inline-block;margin-top:8px;font-size:12px;color:#6a4fd0;background:#efeafc;
+    border-radius:999px;padding:3px 10px;letter-spacing:.3px}
   .kv{background:#fbfaf8;border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:14px;margin-top:8px}
   .kv .h{font-size:12px;color:var(--mut);margin-bottom:4px}
   .img{max-width:100%;border-radius:14px;margin-top:12px;border:1px solid var(--line);display:block}
@@ -284,7 +287,9 @@
       +   (posterSVG ? '<div class="sec-t">气质名片</div>' + posterBlock : '')
       +   (sel.length ? '<div class="sec-t">气质框架</div><div class="pills">'+pills+'</div>' : '')
       +   '<div class="sec-t">统一美学向量（8 轴）</div>' + vecHTML
-      +   (d.explanation ? '<div class="sec-t">为什么这样彰显气质</div><div class="exp">'+esc(d.explanation)+'</div>' : '')
+      +   '<div class="sec-t">为什么这样彰显气质</div>'
+      +   '<div class="exp" id="expBlock">'+esc(d.explanation||'')+'</div>'
+      +   '<span class="ai-tag" id="aiTag" style="display:none">✨ AI 气质解读</span>'
       +   '<div class="sec-t" style="margin-top:24px">我的生成物</div>'
       +   heroHTML
       +   videoHTML
@@ -300,6 +305,15 @@
       +     '<a class="ghost" style="display:inline-block" href="index.html">我也要测 →</a>'
       +   '</div>'
       + '</div>';
+
+    // 自动调用后端 LLM 生成「整体气质总结」，替换/增强确定性解读（未配置国产文本 LLM 时静默回落原文本）
+    try {
+      const frameworks = sel.map(fwId => {
+        const r = results[fwId];
+        return fwName(fwId) + '：' + resultLabel(fwId, r && r.primary) + (r && r.secondary ? ' / ' + resultLabel(fwId, r.secondary) : '');
+      });
+      loadAISummary({ vector: vec, mood: mood, frameworks: frameworks, explanation: d.explanation || '' });
+    } catch (e) { /* LLM 解读是锦上添花，失败不影响主卡片 */ }
 
     // 折叠面板：默认折叠，首次展开时才填充内容（视频直接播放；3D 懒加载 model-viewer 组件）
     document.querySelectorAll('#root .expand').forEach(function(box){
@@ -371,6 +385,32 @@
     const link = location.href;
     if(navigator.clipboard) navigator.clipboard.writeText(link).then(()=>alert('链接已复制'),()=>{});
     else alert('请手动复制地址栏链接');
+  }
+
+  // 自动拉取 LLM 整体气质解读：调用后端 /api/llm/summarize（国产文本 LLM，通义/DeepSeek）。
+  // 未配置文本 LLM 或请求失败时，静默保留原确定性解读，不打扰用户。
+  function loadAISummary(profile){
+    const block = document.getElementById('expBlock');
+    const tag = document.getElementById('aiTag');
+    if(!block || !profile) return;
+    // 同一次会话内对相同画像做缓存，避免重复消耗 LLM 额度
+    const cacheKey = 'aae_summary_' + JSON.stringify(profile);
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if(cached){ block.textContent = cached; block.classList.add('ai-summary'); if(tag) tag.style.display='inline-block'; return; }
+    } catch(e){}
+    fetch('/api/llm/summarize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profile })
+    }).then(r=>r.json()).then(j=>{
+      if(j && j.ok && j.text && j.text.trim()){
+        block.textContent = j.text;
+        block.classList.add('ai-summary');
+        if(tag) tag.style.display = 'inline-block';
+        try { sessionStorage.setItem(cacheKey, j.text); } catch(e){}
+      }
+    }).catch(()=>{});
   }
 
   // 竖版 1080×1920：朋友圈 / 小红书 / Story 的标准画幅，直接存图就能发，

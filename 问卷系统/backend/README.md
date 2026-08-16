@@ -21,6 +21,34 @@ node server.js
 - 数据接口：     GET /api/db  （读取全部受访者）
                 PUT /api/db  （整体写入全部受访者，body 为 JSON 数组）
 
+## 关键配置（`.env`）
+
+复制 `.env.example` 为 `.env` 填写。与本仓库相关的核心项：
+
+| 变量 | 说明 |
+|---|---|
+| `IMG_PROVIDER` | 出图默认通道：`buddycloudimg`（内置混元，默认）/ `jimeng` / `openai` / `none` |
+| `IMG_FALLBACK_ORDER` | 出图多模型 fallback 顺序，如 `buddycloudimg,jimeng,openai`；缺省则单通道 |
+| `JIMENG_*` / `BUDDY_CLOUD_TOKEN` | 即梦 / 内置混元 3D 技能鉴权 |
+| `TEXT_LLM_PROVIDER` | 分享卡 AI 气质解读的国产文本 LLM：`deepseek` / `qwen` / 留空或 `none`（不启用，回落确定性解读） |
+| `DEEPSEEK_API_KEY` / `DASHSCOPE_API_KEY` | 对应国产模型鉴权 |
+| `CORS_ALLOW_ORIGINS` | API 跨域白名单（逗号分隔）；同源 SPA 不受影响 |
+| `ADMIN_EMAIL` / `RESET_CODE` / `SMTP_*` | 管理员、重置码、邮箱验证码找回 |
+
+## 主要 API
+
+| 方法 / 路径 | 说明 |
+|---|---|
+| `GET  /api/health` | 健康检查 `{ ok:true, storage:"sqlite" }` |
+| `GET  /api/db` | 读取全部受访者 JSON 数组 |
+| `PUT  /api/db` | 整体写入受访者（body 为 JSON 数组） |
+| `POST /api/generate-image` | 提交出图任务，返回 `jobId`（异步轮询） |
+| `GET  /api/job/:id` | 轮询出图任务状态 `pending/done/error` |
+| `POST /api/llm/summarize` | 传入审美画像 `{ profile }`，返回国产 LLM 生成的「整体气质总结」；未配置返回 `{ ok:false, notConfigured:true }` |
+| `GET  /api/admin/*` | 管理员接口（统一 401/403 护盾） |
+
+> 出图 / 视频 / 3D 按通道独立计数真实每日额度；游客全局池硬上限保留。`/api/llm/summarize` 结果按画像哈希**服务端缓存**，同一分享卡只调用一次模型。
+
 ## 数据库
 
 - 文件：`问卷系统/backend/data.db`（SQLite，首次运行自动创建）

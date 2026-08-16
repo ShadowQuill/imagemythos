@@ -20,6 +20,7 @@ const crypto = require('node:crypto');
 const { DatabaseSync } = require('node:sqlite');
 const backup = require('./backup');
 const mailer = require('./email'); // 零依赖 SMTP 客户端（QQ邮箱 验证码发信）
+const llm = require('./llm');       // 国产文本 LLM 适配层（通义/DeepSeek），未配置时回落模板
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 // 静态根目录：默认是 backend 的上两级目录（即工作区根，含研究控制台 index.html 与 问卷系统/ 等子项目），可用 STATIC_DIR 覆盖
@@ -418,11 +419,21 @@ const MIME = {
   '.obj': 'text/plain; charset=utf-8', '.zip': 'application/zip',
   '.mp4': 'video/mp4', '.webm': 'video/webm', '.mov': 'video/quicktime'
 };
-function setCORS(res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-  // 必须含 Authorization，否则跨源场景下浏览器预检会拦掉 Bearer 鉴权头
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+// CORS 白名单：仅放行已知前端来源，杜绝任意第三方站点越权调用 API。
+// 同源 SPA 请求本就不触发 CORS，故收紧不影响正常页面；默认含生产域名与本地调试端口。
+const CORS_ALLOW = new Set(
+  (process.env.CORS_ALLOW_ORIGINS || 'https://imagemythos.fun,http://localhost:3000,http://127.0.0.1:3000')
+    .split(',').map(s => s.trim()).filter(Boolean)
+);
+function setCORS(res, req) {
+  const origin = req && req.headers && req.headers.origin;
+  if (origin && CORS_ALLOW.has(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    // 必须含 Authorization，否则跨源场景下浏览器预检会拦掉 Bearer 鉴权头
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  }
+  // 非白名单来源：不返回 CORS 头，跨域调用被浏览器拦截（同源 SPA 不受影响）
 }
 function sendJSON(res, code, obj) {
   res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -689,7 +700,22 @@ try {
 
 // ---------- 路由 ----------
 const server = http.createServer(async (req, res) => {
-  setCORS(res);
+  setCORS(res, req);
+  // 全局安全响应头：覆盖所有 res.writeHead 调用，统一加固（防点击劫持 / MIME 嗅探 / referrer 泄露）。
+  // 不覆盖已显式设置的头；CSP 以 'self' 为基，允许内联脚本/样式与 https 资源（出图、视频、外部配图所需）。
+  const _origWriteHead = res.writeHead.bind(res);
+  res.writeHead = function (status, headers) {
+    const h = (headers && typeof headers === 'object') ? headers : {};
+    if (h['X-Content-Type-Options'] === undefined) h['X-Content-Type-Options'] = 'nosniff';
+    if (h['X-Frame-Options'] === undefined) h['X-Frame-Options'] = 'DENY';
+    if (h['Referrer-Policy'] === undefined) h['Referrer-Policy'] = 'no-referrer';
+    if (h['Content-Security-Policy'] === undefined) {
+      h['Content-Security-Policy'] = "default-src 'self'; img-src 'self' data: https:; media-src 'self' https:; "
+        + "style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; "
+        + "frame-src 'self'; connect-src 'self' https:; font-src 'self' data:; base-uri 'self'; form-action 'self'";
+    }
+    return _origWriteHead(status, h);
+  };
   const url = new URL(req.url, 'http://localhost');
   const p = decodeURIComponent(url.pathname);
 
@@ -1500,6 +1526,23 @@ const server = http.createServer(async (req, res) => {
     return sendJSON(res, 200, loadTrial(clientIP(req), 'engine'));
   }
 
+  // ---------- 文本 LLM 气质解读（通义/DeepSeek） ----------
+  // 密钥仅存服务端；未配置 TEXT_LLM_PROVIDER 时返回 notConfigured，调用方回落确定性解读。
+  // 仅文本、全局 /api 限流已覆盖匿名请求，便于公开分享页打开时自动调用。
+  if (p === '/api/llm/summarize' && req.method === 'POST') {
+    try {
+      const body = JSON.parse(await readBody(req, 64 * 1024));
+      const profile = (body && body.profile) || {};
+      if (!llm.activeProvider()) return sendJSON(res, 200, { ok: false, notConfigured: true, text: profile.explanation || '' });
+      const out = await llm.summarizeProfile(profile, { timeout: 30000 });
+      return sendJSON(res, 200, { ok: true, text: out });
+    } catch (e) {
+      const msg = String((e && e.message) || e);
+      if (/未配置/.test(msg)) return sendJSON(res, 200, { ok: false, notConfigured: true, text: '' });
+      return sendJSON(res, 502, { error: 'AI 气质解读失败：' + msg });
+    }
+  }
+
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
 
   // 出图代理：密钥仅存于服务端（IMG_PROVIDER / OPENAI_API_KEY / JIMENG_API_KEY 等环境变量），前端不接触
@@ -1540,13 +1583,35 @@ const server = http.createServer(async (req, res) => {
             if (ipTrial.remaining <= 0) { job.status = 'error'; job.needLogin = true; job.imgTrial = ipTrial; job.error = `游客今日出图额度已用完（${ipTrial.used}/${ipTrial.limit} 张），登录后可用本人额度出图`; return; }
           }
           const prov = require(path.join(STATIC_DIR, 'ai-aesthetic-engine', 'providers'));
-          // 实际使用的出图通道（前端可经 body.opts.provider 指定，否则取服务端 IMG_PROVIDER 默认）
-          const provider = (body && body.opts && body.opts.provider) || process.env.IMG_PROVIDER || 'buddycloudimg';
-          // 整体超时守卫：底层 provider 未按时返回也一定收尾，避免任务永久 pending
-          const res2 = await Promise.race([
-            prov.generateImage(prompt, (body && body.opts) || {}),
-            new Promise((_, rej) => setTimeout(() => rej(new Error('出图超时（服务端守卫 4 分钟）')), 4 * 60 * 1000))
-          ]);
+          // 出图通道选择：默认单通道（与之前行为一致）；配置 IMG_FALLBACK_ORDER 后启用多模型 fallback。
+          // 规则：前端经 body.opts.provider 指定的通道优先；其余按 IMG_FALLBACK_ORDER 依次尝试；
+          // 未配置 IMG_FALLBACK_ORDER 时退化为仅「指定通道或 IMG_PROVIDER 默认」单通道，原行为不变。
+          const preferred = (body && body.opts && body.opts.provider) || null;
+          const orderEnv = (process.env.IMG_FALLBACK_ORDER || '').split(',').map(s => s.trim()).filter(Boolean);
+          let chain;
+          if (orderEnv.length) {
+            chain = [];
+            if (preferred) chain.push(preferred);
+            orderEnv.forEach(p => { if (!chain.includes(p)) chain.push(p); });
+          } else {
+            chain = [preferred || process.env.IMG_PROVIDER || 'buddycloudimg'];
+          }
+          // 逐通道尝试：单通道带超时守卫，成功（返回 image）即采用；失败/超时自动切下一通道。
+          // 全部失败才抛错。任一通道缺 key/未配置时 generateImage 返回 {image:null,reason}（不抛），循环快速跳过。
+          let res2 = null, lastReason = null;
+          const PER_ATTEMPT_MS = 4 * 60 * 1000; // 单通道超时守卫
+          for (const cand of chain) {
+            try {
+              const r = await Promise.race([
+                prov.generateImage(prompt, Object.assign({}, (body && body.opts) || {}, { provider: cand })),
+                new Promise((_, rej) => setTimeout(() => rej(new Error('出图超时（' + cand + ' 守卫 4 分钟）')), PER_ATTEMPT_MS))
+              ]);
+              if (r && r.image) { res2 = r; break; }
+              lastReason = (r && r.reason) || ('通道 ' + cand + ' 未返回图像');
+            } catch (e) { lastReason = e.message; }
+          }
+          if (!res2) throw new Error('全部出图通道失败：' + lastReason);
+          const provider = res2.provider || chain[0]; // 实际成功通道，用于分通道记账
           if (res2 && res2.image) { // 仅真正出图成功才消耗额度（降级/失败不计）
             addUsage(userId, 1);
             if (!authUser) addTrial(ip, 'image', 1); // 记匿名 per-IP 出图次数（登录用户不计 per-IP）

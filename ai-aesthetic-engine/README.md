@@ -32,6 +32,8 @@ Node 侧：`node engine.test.js` 跑全部单测。
 4. **占星三要素归一化加权平均**：太阳/月亮/上升按 `aspectWeights` 做 `aVec = Σ(wᵢ · 要素ᵢ向量) / Σwᵢ`，权重直接决定各要素占比，滑杆可感。
 5. **确定性 tie-break**：分数相同时按固定优先级裁决，保证可复现。
 
+> **分享卡 AI 气质解读**：融合出的确定性状总结（`explanation`）会被 `share.html` 在打开时自动送往 `/api/llm/summarize`，由后端国产 LLM（DeepSeek / 通义千问，需配置 `TEXT_LLM_PROVIDER`）改写为更自然的「整体气质总结」文案并标注「✨ AI 气质解读」；未配置时静默保留本确定性解读。
+
 ## 数据格式
 
 - `dimensions.json`：`{ "dimensions": [ { "id", "label", "pole_neg", "pole_pos", ... } ] }`
