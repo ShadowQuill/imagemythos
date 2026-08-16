@@ -287,7 +287,7 @@
       +   (posterSVG ? '<div class="sec-t">气质名片</div>' + posterBlock : '')
       +   (sel.length ? '<div class="sec-t">气质框架</div><div class="pills">'+pills+'</div>' : '')
       +   '<div class="sec-t">统一美学向量（8 轴）</div>' + vecHTML
-      +   '<div class="sec-t">为什么这样彰显气质</div>'
+      +   '<div class="sec-t" id="expTitle">为什么这样彰显气质</div>'
       +   '<div class="exp" id="expBlock">'+esc(d.explanation||'')+'</div>'
       +   '<span class="ai-tag" id="aiTag" style="display:none">✨ AI 气质解读</span>'
       +   '<div class="sec-t" style="margin-top:24px">我的生成物</div>'
@@ -392,12 +392,13 @@
   function loadAISummary(profile){
     const block = document.getElementById('expBlock');
     const tag = document.getElementById('aiTag');
+    const title = document.getElementById('expTitle');
     if(!block || !profile) return;
     // 同一次会话内对相同画像做缓存，避免重复消耗 LLM 额度
     const cacheKey = 'aae_summary_' + JSON.stringify(profile);
     try {
       const cached = sessionStorage.getItem(cacheKey);
-      if(cached){ block.textContent = cached; block.classList.add('ai-summary'); if(tag) tag.style.display='inline-block'; return; }
+      if(cached){ block.textContent = cached; block.classList.add('ai-summary'); if(tag) tag.style.display='inline-block'; if(title) title.textContent='整体气质解读'; return; }
     } catch(e){}
     fetch('/api/llm/summarize', {
       method: 'POST',
@@ -408,6 +409,7 @@
         block.textContent = j.text;
         block.classList.add('ai-summary');
         if(tag) tag.style.display = 'inline-block';
+        if(title) title.textContent = '整体气质解读';
         try { sessionStorage.setItem(cacheKey, j.text); } catch(e){}
       }
     }).catch(()=>{});
