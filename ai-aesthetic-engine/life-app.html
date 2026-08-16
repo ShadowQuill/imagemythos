@@ -128,6 +128,27 @@
     return String(msg);
   }
 
+  // 把后端 /api/me/usage 的快照渲染成「各通道今日已生成」文案（仅 3D 有真实云端上限 5 次，其余只显示次数）。
+  function genUsageText(u) {
+    if (!u) return '';
+    if (u.unlimited) return '出图无限';
+    const cs = u.channels || ['image_buddycloudimg', 'image_jimeng', 'image_openai', 'video', '3d'];
+    return cs.map(c => {
+      const n = (u.today && u.today[c]) || 0;
+      const lim = (u.cloudDailyLimit && u.cloudDailyLimit[c]) || null;
+      return (u.labels && u.labels[c] || c) + ' ' + n + (lim ? ('/' + lim) : '');
+    }).join(' · ');
+  }
+  // 拉取本人各通道今日用量并刷新到 #sceneQuota（仅登录态有效；游客静默跳过）。
+  async function refreshUsageUI() {
+    if (!getToken()) return;
+    try {
+      const u = await (await fetch('/api/me/usage', { headers: authHeaders() })).json();
+      const el = document.getElementById('sceneQuota');
+      if (el) el.textContent = genUsageText(u);
+    } catch (e) { /* 后端未运行或失效，静默 */ }
+  }
+
   function getScene(){
     const p = new URLSearchParams(location.search).get('scene');
     return SCENES[p] ? p : 'house';
@@ -242,6 +263,7 @@
       '<option value="openai">OpenAI</option><option value="jimeng">即梦 AI</option></select></div>'+
       '<button class="mini" id="reqSceneImg">'+escapeHtml(meta.imgLabel)+'</button>'+
       '<button class="mini" id="dlSceneImg" style="display:none;margin-left:8px">下载图片</button>'+
+      '<span id="sceneQuota" style="margin-left:8px;color:var(--mut);font-size:12px"></span>'+
       '<div class="note" id="sceneImgMsg"></div>'+
       '<img id="sceneImg" class="gen-img" style="display:none"></div>';
   }
@@ -269,6 +291,7 @@
           if(res && res.image){ imgEl.src=res.image; imgEl.style.display='block'; dl.style.display='inline-block'; msg.textContent=''; }
           else msg.textContent = '未出图：' + (res&&(res.error||res.reason)||'未知原因') + '（可复制上方方案到文生图工具）';
           if(res && res.needLogin && !res.image && confirm('出图额度已用完，登录后即可使用本人额度继续出图。是否现在登录？')) location.href='index.html';
+          refreshUsageUI(); // 刷新各通道「今日已生成」真实用量
           btn.disabled=false; btn.style.opacity='1'; btn.textContent='重新生成';
         },
         error: (job) => {

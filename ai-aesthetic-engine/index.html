@@ -894,6 +894,30 @@
     return String(msg);
   }
 
+  // 把后端 /api/me/usage 的快照渲染成「各通道今日已生成」文案。
+  // 仅 3D 有真实云端每日上限（5 次），显示 N/5；其余通道真实上限未知，只显示「N 次」，不编造上限。
+  function genUsageText(u) {
+    if (!u) return '';
+    if (u.unlimited) return '出图无限';
+    const cs = u.channels || ['image_buddycloudimg', 'image_jimeng', 'image_openai', 'video', '3d'];
+    return cs.map(c => {
+      const n = (u.today && u.today[c]) || 0;
+      const lim = (u.cloudDailyLimit && u.cloudDailyLimit[c]) || null;
+      return (u.labels && u.labels[c] || c) + ' ' + n + (lim ? ('/' + lim) : '');
+    }).join(' · ');
+  }
+  // 拉取本人各通道今日用量并刷新到顶栏与出图卡片（仅登录态有效；游客静默跳过）。
+  async function refreshUsageUI() {
+    if (!getToken()) return;
+    try {
+      const u = await (await fetch('/api/me/usage', { headers: authHeaders() })).json();
+      const txt = genUsageText(u);
+      const g = document.getElementById('genQuota'); if (g) g.textContent = txt;
+      const a = document.getElementById('authQuota');
+      if (a) { if (u.unlimited) { a.textContent = '出图无限'; a.classList.add('inf'); } else { a.textContent = txt; a.classList.remove('inf'); } }
+    } catch (e) { /* 后端未运行或失效，静默 */ }
+  }
+
   document.getElementById('reqImg').addEventListener('click', async ()=>{
     // 融合「影像提示词」+「空间 / 视觉风格」，让单张图同时体现两者
     const pkg = window.__lastPkg;
@@ -935,8 +959,9 @@
         done: (res) => {
           if(res && res.image){ imgEl.src=res.image; imgEl.style.display='block'; dlEl.style.display='inline-block'; msg.textContent=''; window.__lastImage = res.image; window.__lastImageUrl = res.imageUrl || null; }
           else msg.textContent = '未出图：' + (res&&(res.error||res.reason)||'未知原因') + '（可复制提示词到文生图工具）';
-          if(res&&res.imgTrial){ quotaEl.textContent = '游客今日出图剩余 ' + res.imgTrial.remaining + ' / ' + res.imgTrial.limit + ' 张'; }
-          else if(res&&res.quota){ quotaEl.textContent = '剩余额度 ' + (res.quota.limit - res.quota.used) + ' / ' + res.quota.limit; }
+          if(res && res.imgTrial){ quotaEl.textContent = '游客今日出图剩余 ' + res.imgTrial.remaining + ' / ' + res.imgTrial.limit + ' 张'; }
+          else if(res && res.genUsage){ quotaEl.textContent = genUsageText(res.genUsage); }
+          else { refreshUsageUI(); }
           if(res&&res.needLogin && !res.image){ if(confirm('出图额度已用完，登录后即可使用本人额度继续出图。是否现在登录？')) openAuth('login'); }
           btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '请求后端出图';
         },
@@ -1000,6 +1025,7 @@
           const hide = () => { const l = mv && mv.parentElement && mv.parentElement.querySelector('.loading'); if(l) l.remove(); };
           if(mv){ mv.addEventListener('load', hide); mv.addEventListener('error', () => { const l = mv.parentElement.querySelector('.loading'); if(l) l.textContent = '3D 雕塑加载失败，请刷新重试'; }); setTimeout(hide, 8000); }
           msg.textContent = ''; btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '重新生成';
+          refreshUsageUI(); // 刷新各通道「今日已生成」真实用量
         },
         error: (job) => {
           const code = job.code || 500;
@@ -1048,6 +1074,7 @@
         done: (res) => {
           renderVideo(wrap, res && res.video, msg, btn);
           window.__lastVideo = (res && res.video) || null;
+          refreshUsageUI(); // 刷新各通道「今日已生成」真实用量
         },
         error: (job) => {
           const code = job.code || 500;
@@ -1399,12 +1426,7 @@
       const role = $('authRole');
       if(j.user.is_admin){ role.textContent='管理员'; role.style.display=''; } else { role.style.display='none'; }
       $('adminLink').style.display = j.user.is_admin ? '' : 'none';
-      try{
-        const u = await (await fetch('/api/me/usage', { headers: authHeaders() })).json();
-        const q = $('authQuota');
-        if(u && u.limit < 0){ q.textContent='出图无限'; q.classList.add('inf'); }
-        else { q.textContent='出图剩余 ' + (u.limit - u.used) + '/' + u.limit; q.classList.remove('inf'); }
-      }catch(e){ $('authQuota').textContent=''; }
+      await refreshUsageUI(); // 顶栏 + 出图卡片显示各通道「今日已生成」真实用量
     }catch(e){ $('authGuest').style.display=''; $('authUser').style.display='none'; }
   }
 

@@ -561,6 +561,14 @@ function publicUser(u) { return u ? { id: u.id, email: u.email, created_at: u.cr
 // 即梦模型：并发上限 1、账号总额度有限（默认 200）。下面两机制保证稳定、可控。
 // 配额改为 SQLite 真实计数（usage 表），替代原先 quota.json 本地假计数。
 const QUOTA_LIMIT = parseInt(process.env.IMG_QUOTA || '200', 10);
+// 各生成通道的真实云端每日上限：仅代码/供应商明确给出时填（3D=5 为 hy-3d 维度硬限制）；
+// 其余为 null = 未知，前端不显示自定上限数字，只显示「今日已生成 N 次」，超量由云端 429 兜底。
+const GEN_CHANNELS = ['image_buddycloudimg', 'image_jimeng', 'image_openai', 'video', '3d'];
+const CLOUD_DAILY_LIMIT = { '3d': 5 };
+const CHANNEL_LABEL = {
+  image_buddycloudimg: '混元生图', image_jimeng: '即梦', image_openai: 'OpenAI',
+  video: '视频', '3d': '3D'
+};
 // isAdmin=true 时返回 limit:-1（无限，前端识别为 ∞），且 /api/generate-image 不再拦截。
 function loadQuota(userId, isAdmin) {
   if (isAdmin) return { used: 0, limit: -1, unlimited: true };
@@ -585,6 +593,29 @@ function addUsage(userId, n = 1) {
     db.prepare('INSERT INTO image_log (id, user_id, created_at, n) VALUES (?, ?, ?, ?)')
       .run(Date.now() + '-' + Math.random().toString(36).slice(2, 8), userId, now, n);
   } catch (e) { /* 趋势统计非关键路径，忽略 */ }
+}
+
+// 按「用户 × 通道 × 自然日」统计「今日已生成」次数（驱动前端展示真实用量，不套自定上限）。
+// 与 usage（累计配额）独立：这里只回答「今天这个通道生成了几张/段/个」，供「今日已生成 N 次」展示。
+db.exec(`CREATE TABLE IF NOT EXISTS gen_log (
+  id TEXT PRIMARY KEY, user_id TEXT NOT NULL, channel TEXT NOT NULL,
+  day TEXT NOT NULL, created_at TEXT NOT NULL
+);`);
+db.exec('CREATE INDEX IF NOT EXISTS idx_genlog_user_day ON gen_log (user_id, channel, day);');
+function dayStr(d) { const x = new Date(d); const p = n => String(n).padStart(2, '0'); return x.getFullYear() + '-' + p(x.getMonth() + 1) + '-' + p(x.getDate()); }
+function recordGen(userId, channel) {
+  const now = new Date().toISOString();
+  try { db.prepare('INSERT INTO gen_log (id, user_id, channel, day, created_at) VALUES (?, ?, ?, ?, ?)')
+    .run('g_' + crypto.randomBytes(8).toString('hex'), userId, channel, dayStr(now), now); } catch (e) { /* 非关键 */ }
+}
+function countToday(userId, channel) {
+  try { const r = db.prepare('SELECT COUNT(*) AS c FROM gen_log WHERE user_id = ? AND channel = ? AND day = ?').get(userId, channel, dayStr(new Date())); return r ? r.c : 0; }
+  catch (e) { return 0; }
+}
+// 给前端的额度快照：每个通道今日已生成次数 + 已知的真实云端每日上限（3D=5，其余未知为 null）。
+function genUsageSnapshot(userId) {
+  const today = {}; GEN_CHANNELS.forEach(c => { today[c] = countToday(userId, c); });
+  return { today, cloudDailyLimit: CLOUD_DAILY_LIMIT, labels: CHANNEL_LABEL };
 }
 // 出图并发池：最多同时 GEN_CONCURRENCY 个出图在飞（减少排队等待），但仍是受控并发。
 // 之前是严格串行（1 个），多人/多次点击时后面要干等；提升到 3 可在不压垮云端的前提下明显降等待。
@@ -839,7 +870,9 @@ const server = http.createServer(async (req, res) => {
     if (!u) return sendJSON(res, 401, { error: '未登录' });
     if (p === '/api/me/usage') {
       if (req.method !== 'GET') { res.writeHead(405); res.end(); return; }
-      return sendJSON(res, 200, loadQuota(u.id, !!u.is_admin));
+      // 返回各生成通道「今日已生成」次数 + 已知的真实云端每日上限（3D=5，其余为 null 不展示上限）
+      const snap = genUsageSnapshot(u.id);
+      return sendJSON(res, 200, Object.assign({ unlimited: !!u.is_admin, channels: GEN_CHANNELS }, snap));
     }
     // /api/me/profile
     if (req.method === 'PUT' || req.method === 'POST') {
@@ -1497,14 +1530,18 @@ const server = http.createServer(async (req, res) => {
       const job = createJob();
       enqueueGen(async () => {
         try {
+          // 仅「游客全局池」做硬上限保护；登录用户不再套用自定的 200 上限，改由云端真实额度（429）兜底，
+          // 避免自定上限低于/高于真实供应商额度造成的误导或误拦。
           const q = loadQuota(userId, isAdmin);
-          if (!isAdmin && q.used >= q.limit) { job.status = 'error'; job.needLogin = true; job.error = `额度已用尽（${q.used}/${q.limit}），登录后可用本人额度出图`; return; }
+          if (!isAdmin && userId === ANON_USER && q.used >= q.limit) { job.status = 'error'; job.needLogin = true; job.error = `游客全局出图额度已用尽（${q.used}/${q.limit}），登录后可用本人额度出图`; return; }
           // 双保险：任务内再次核验「单 IP 每日出图上限」
           if (!authUser) {
             const ipTrial = loadTrial(ip, 'image');
             if (ipTrial.remaining <= 0) { job.status = 'error'; job.needLogin = true; job.imgTrial = ipTrial; job.error = `游客今日出图额度已用完（${ipTrial.used}/${ipTrial.limit} 张），登录后可用本人额度出图`; return; }
           }
           const prov = require(path.join(STATIC_DIR, 'ai-aesthetic-engine', 'providers'));
+          // 实际使用的出图通道（前端可经 body.opts.provider 指定，否则取服务端 IMG_PROVIDER 默认）
+          const provider = (body && body.opts && body.opts.provider) || process.env.IMG_PROVIDER || 'buddycloudimg';
           // 整体超时守卫：底层 provider 未按时返回也一定收尾，避免任务永久 pending
           const res2 = await Promise.race([
             prov.generateImage(prompt, (body && body.opts) || {}),
@@ -1513,8 +1550,11 @@ const server = http.createServer(async (req, res) => {
           if (res2 && res2.image) { // 仅真正出图成功才消耗额度（降级/失败不计）
             addUsage(userId, 1);
             if (!authUser) addTrial(ip, 'image', 1); // 记匿名 per-IP 出图次数（登录用户不计 per-IP）
+            // 按所选通道记账（分通道独立计数，前端据此展示各通道「今日已生成 N 次」）
+            recordGen(userId, 'image_' + provider);
             res2.quota = loadQuota(userId);
             if (!authUser) res2.imgTrial = loadTrial(ip, 'image');
+            res2.genUsage = genUsageSnapshot(userId);
           }
           // 若落为本地 png，转 dataURL 便于前端直接展示；同时落一份到公开 share-images（s_ 前缀，匹配静态路由），
           // 返回 imageUrl 公网地址，供「图生视频特效」等需要云端可拉取图片 URL 的场景使用。
@@ -1558,6 +1598,8 @@ const server = http.createServer(async (req, res) => {
             new Promise((_, rej) => setTimeout(() => rej(new Error('3D 生成超时（服务端守卫 8 分钟）')), 8 * 60 * 1000))
           ]);
           job.result = { ok: true, model_path: '/3d-models/' + fileName, url: '/3d-models/' + fileName };
+          recordGen(me.id, '3d'); // 按通道记账（云端 hy-3d 硬限制每日 5 次，前端展示 N/5）
+          job.result.genUsage = genUsageSnapshot(me.id);
           job.status = 'done';
         } catch (e) {
           const msg = String((e && e.message) || e);
@@ -1593,6 +1635,8 @@ const server = http.createServer(async (req, res) => {
             new Promise((_, rej) => setTimeout(() => rej(new Error('视频生成超时（服务端守卫 10 分钟）')), 10 * 60 * 1000))
           ]);
           job.result = { ok: true, video: r.video, url: r.url, type: r.type };
+          recordGen(me.id, 'video'); // 按通道记账（视频每日真实上限由云端 429 兜底，前端展示今日已生成次数）
+          job.result.genUsage = genUsageSnapshot(me.id);
           job.status = 'done';
         } catch (e) {
           const msg = String((e && e.message) || e);
